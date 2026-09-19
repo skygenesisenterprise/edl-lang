@@ -11,12 +11,14 @@ body:
       Reports with a reproducible example or detailed information will likely receive fixes faster.
 
 - type: textarea
-  id: nim-version
+  id: edl-version
   attributes:
-    label: Nim Version
+    label: EDL Compiler Version
     description: |
-      Can be obtained from `nim -v` on the command line along with the OS/architecture.
-      For development versions, including the commit hash may help.
+      Provide the compiler commit hash and how it was built. During the early
+      bootstrap phase EDL is compiled by the bootstrap substrate, so include
+      the output of `build/edl/edlc --help` (or the commit of the `edl/` tree
+      you are using) along with your OS/architecture.
   validations:
     required: true
 
@@ -65,9 +67,9 @@ body:
 - type: markdown
   attributes:
     value: |
-      - Please check whether the problem still exists in the devel branch, which can be installed via [choosenim](https://github.com/nim-lang/choosenim/), [nightlies](https://github.com/nim-lang/nightlies/), or by [creating a temporary build of the compiler](https://nim-lang.github.io/Nim/intern.html#debugging-the-compiler-building-an-instrumented-compiler).
-      - Consider writing a PR targetting devel branch after filing this, see [contributing](https://nim-lang.github.io/Nim/contributing.html).
-      - If it's a pre-existing compiler bug, see [debugging the compiler](https://nim-lang.github.io/Nim/intern.html#debugging-the-compiler) which should give more context on a compiler crash.
-      - If it's a regression, you can help us by identifying which version introduced the bug by [bisecting](https://nim-lang.github.io/Nim/intern.html#bisecting-for-regressions) or at least trying known past releases (e.g. `choosenim 2.0.0`).
-        The Nim repo also supports bisecting in issue comments by adding `!nim c`, `!nim js` etc. before a code block, see [nimrun-action](https://github.com/juancarlospaco/nimrun-action).
-      - [Please, consider a Donation for the Nim project.](https://nim-lang.org/donate.html)
+      - Please check whether the problem still exists on the latest commit of the `devel` branch.
+      - Consider writing a PR targeting the `devel` branch after filing this; see the project's
+        [contributing guide](https://github.com/skygenesisenterprise/edl-lang/blob/devel/readme.md#contributing).
+      - The EDL compiler is written in a temporary bootstrap dialect while the EDL toolchain grows;
+        see [specs/architecture.md](https://github.com/skygenesisenterprise/edl-lang/blob/devel/specs/architecture.md)
+        for the roadmap. Bugs in the bootstrap substrate itself are tracked separately from EDL language bugs.

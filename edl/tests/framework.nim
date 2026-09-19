@@ -1,6 +1,6 @@
 ## Minimal assertion framework for the EDL test suite.
 ##
-## Deliberately hand-written: Nim's `unittest` module is template- and
+## Deliberately hand-written: the substrate's `unittest` module is template- and
 ## macro-based, and ADR-0001 forbids that in EDL code. A test framework is
 ## exactly the kind of code that should be migratable to EDL mechanically, so it
 ## is plain procs and counters.

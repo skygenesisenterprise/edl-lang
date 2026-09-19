@@ -1,4 +1,4 @@
-name: Nim Docs CI
+name: EDL bootstrap substrate docs
 on:
   push:
     paths:
@@ -93,11 +93,11 @@ jobs:
         shell: cmd
         run: ci/build_autogen.bat
 
-      - name: 'Build koch'
+      - name: 'Build the bootstrap toolchain'
         shell: bash
         run: nim c koch
 
-      - name: 'Build the real compiler'
+      - name: 'Build the bootstrap substrate compiler'
         shell: bash
         run: ./koch boot -d:release
 

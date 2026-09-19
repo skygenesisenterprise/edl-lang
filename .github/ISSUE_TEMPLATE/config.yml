@@ -1,10 +1,7 @@
 contact_links:
-  - name: Forum
-    url: https://forum.nim-lang.org
+  - name: Discussions
+    url: https://github.com/skygenesisenterprise/edl-lang/discussions
     about: Please ask and answer questions here.
-  - name: Discord
-    url: https://discord.gg/nim
-    about: Please ask and answer questions here.
-  - name: Stack Overflow
-    url: https://stackoverflow.com/questions/tagged/nim-lang
-    about: Please ask and answer questions here.
+  - name: EDL specification
+    url: https://github.com/skygenesisenterprise/edl-lang/blob/devel/specs/architecture.md
+    about: Read how the language and toolchain are designed before proposing changes.

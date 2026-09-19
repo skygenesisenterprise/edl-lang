@@ -9,6 +9,9 @@ set -e
 
 root=$(cd "$(dirname "$0")/../.." && pwd)
 nim="$root/bin/nim"
+if [ ! -x "$nim" ] && [ -f "$root/bin/nim.exe" ]; then
+  nim="$root/bin/nim.exe"   # Windows: the substrate builds bin/nim.exe
+fi
 
 if [ ! -x "$nim" ]; then
   echo "error: $nim not found." >&2

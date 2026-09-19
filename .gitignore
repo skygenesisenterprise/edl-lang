@@ -1,8 +1,24 @@
+# Default: ignore everything, then re-include directories and non-hidden files.
 *
 !**/
 !*.*
 
-# Cache
+# ---------------------------------------------------------------
+# EDL-generated output (the EDL toolchain's own artifacts).
+# ---------------------------------------------------------------
+# EDL compiler output: generated source, objects and executables (see specs/compiler.md).
+.edlout/
+build/edl/
+# VS Code extension package.
+packages/vscode/*.vsix
+
+# ---------------------------------------------------------------
+# Bootstrap-substrate generated files (Nim compiler output).
+# The patterns below are required while the EDL toolchain is built by the
+# Nim bootstrap substrate in bin/ (build_all.sh -> koch). They are removed as
+# the substrate is replaced. Keep them until then: edl/scripts/build.sh writes
+# its cache under build/edl/nimcache-*, and the substrate produces the rest.
+# ---------------------------------------------------------------
 nimcache*/
 rnimcache*/
 dnimcache*/

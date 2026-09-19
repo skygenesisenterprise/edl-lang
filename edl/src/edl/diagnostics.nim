@@ -64,7 +64,7 @@ const
 
   # ---- EDL09xx: toolchain -------------------------------------------------
   edlDrvFileNotFound* = "EDL0901"
-  edlDrvNimNotFound* = "EDL0902"
+  edlDrvBootstrapNotFound* = "EDL0902"
   edlDrvEmitFailed* = "EDL0903"
   edlDrvBackendFailed* = "EDL0904"
 

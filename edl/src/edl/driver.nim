@@ -28,14 +28,14 @@ import ./backends/backend
 
 const
   defaultOutDir* = ".edlout"
-  defaultBackend* = bkNimBootstrap
+  defaultBackend* = bkBootstrap
 
 type
   CompileOptions* = object
     inputPath*: string
     outputPath*: string   ## empty: <outDir>/<module name>
     outDir*: string       ## empty: `.edlout`
-    nimExe*: string       ## empty: EDL_NIM, else bin/nim, else nim from PATH
+    bootstrapExe*: string ## empty: EDL_NIM, else bin/nim, else nim from PATH
     emitOnly*: bool       ## stop after writing the backend source
     dumpAst*: bool
     dumpIr*: bool
@@ -80,7 +80,7 @@ proc moduleNameFromPath*(path: string): string =
   if result.len == 0:
     result = "module"
 
-proc findNimExe*(explicit: string): string =
+proc findBootstrapExe*(explicit: string): string =
   ## Where the bootstrap compiler lives, in order of precedence:
   ## an explicit path, `EDL_NIM`, `bin/nim` in the working directory, PATH.
   if explicit.len > 0:
@@ -185,10 +185,10 @@ proc compileFile*(opts: CompileOptions): CompileResult =
   var exePath = opts.outputPath
   if exePath.len == 0:
     exePath = outDir / moduleName
-  let nimExe = findNimExe(opts.nimExe)
-  let cacheDir = outDir / "nimcache"
+  let bootstrapExe = findBootstrapExe(opts.bootstrapExe)
+  let cacheDir = outDir / "bootstrap-cache"
   var toolOutput = ""
-  let built = compileOutput(defaultBackend, nimExe, generatedPath, exePath,
+  let built = compileOutput(defaultBackend, bootstrapExe, generatedPath, exePath,
                             "", cacheDir, toolOutput)
   result.toolOutput = toolOutput
   if built:

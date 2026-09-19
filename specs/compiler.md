@@ -128,6 +128,23 @@ program behaves normally.
 In order: `--nim <path>`, then `EDL_NIM`, then `bin/nim` in the working directory,
 then `nim` from `PATH`.
 
+### Editor and GitHub integration (roadmap)
+
+`.edl` files are already classified as EDL by the VS Code extension (language id
+`edl`, scope `source.edl`, extension `.edl`; see `packages/vscode/`). The following
+are tracked as tooling work, not faked in advance of real implementations:
+
+* **GitHub Linguist** — `.gitattributes` carries `*.edl linguist-language=EDL`.
+  GitHub's Linguist only recognises languages registered upstream, so full
+  `.edl → EDL` classification requires contributing an EDL language definition to
+  the `github-linguist/linguist` project. Until then `.edl` is not mislabelled as
+  Nim: it is simply reported as an unknown language. TODO: upstream language
+  definition, then remove the `.gitattributes` override if it becomes redundant.
+* **Tree-sitter** — no EDL grammar exists yet. A grammar would be a concrete
+  by-product of a stabilised syntax and is not created before the parser is
+  settled. TODO: contribute a `tree-sitter-edl` grammar and mirror the VS Code
+  language identity (scope `source.edl`) so editors share one parse tree.
+
 ## Testing
 
 `edl/scripts/test.sh` builds the compiler, builds the test runner and runs every

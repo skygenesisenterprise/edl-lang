@@ -1,4 +1,4 @@
-name: Tracking orc-booting compiler memory usage
+name: EDL bootstrap substrate memory tracking
 
 on:
   pull_request_target:
@@ -47,11 +47,11 @@ jobs:
         shell: bash
         run: . ci/funs.sh && nimBuildCsourcesIfNeeded CC=gcc ucpu='${{ matrix.cpu }}'
 
-      - name: 'Build koch'
+      - name: 'Build the bootstrap toolchain'
         shell: bash
         run: nim c koch
 
-      - name: 'Build Nim'
+      - name: 'Build the bootstrap substrate compiler'
         shell: bash
         run: ./koch boot -d:release -d:nimStrictMode --lib:lib
 

@@ -1,7 +1,7 @@
 ## The backend interface.
 ##
 ## Everything the rest of the compiler knows about code generation goes through
-## this module. Swapping the transitional Nim backend for a native one is
+## this module. Swapping the transitional bootstrap backend for a native one is
 ## supposed to be a change to one `case` branch, not to the language, the
 ## frontend, the IR, or the driver.
 ##
@@ -18,30 +18,30 @@ import ./nimbackend
 type
   BackendKind* = enum
     bkError
-    bkNimBootstrap   ## EDL IR -> Nim -> C -> native (transitional)
+    bkBootstrap   ## EDL IR -> bootstrap source -> C -> native (transitional)
 
 proc backendName*(kind: BackendKind): string =
   case kind
   of bkError: result = "<error>"
-  of bkNimBootstrap: result = "nim-bootstrap"
+  of bkBootstrap: result = "bootstrap"
 
 proc backendSourceExtension*(kind: BackendKind): string =
   ## Extension of the file `emitModule` produces.
   case kind
   of bkError: result = ""
-  of bkNimBootstrap: result = "nim"
+  of bkBootstrap: result = "nim"
 
 proc emitModule*(kind: BackendKind, m: IrModule, t: TypeTable): string =
   ## Renders an IR module as source in this backend's language.
   case kind
   of bkError: result = ""
-  of bkNimBootstrap: result = emitNimModule(m, t)
+  of bkBootstrap: result = emitNimModule(m, t)
 
 proc compileOutput*(kind: BackendKind, compilerExe, srcPath, outPath, workDir,
                     cacheDir: string, output: var string): bool =
   ## Turns this backend's emitted source into a native executable.
   case kind
   of bkError: result = false
-  of bkNimBootstrap:
+  of bkBootstrap:
     result = compileNimSource(compilerExe, srcPath, outPath, workDir, cacheDir,
                               output)

@@ -1,9 +1,9 @@
-## The Nim -> EDL migrator.
+## The migrator from the bootstrap dialect to EDL.
 ##
-## Reads the *bootstrap dialect* of Nim (ADR-0001) and writes EDL. It is a
-## structural translator, not a compiler: it reuses no Nim semantics and, where
-## EDL has no equivalent yet, it reports the construct instead of inventing a
-## translation. Every reported construct leaves a `//` comment in the output, so
+## Reads the *bootstrap dialect* (ADR-0001) and writes EDL. It is a
+## structural translator, not a compiler: it reuses no bootstrap-semantics and,
+## where EDL has no equivalent yet, it reports the construct instead of inventing
+## a translation. Every reported construct leaves a `//` comment in the output, so
 ## the result always parses.
 ##
 ## Two kinds of report entry:
@@ -27,7 +27,7 @@ type
     mnAdvisory
 
   MigNote* = object
-    line*: int          ## 1-based line in the Nim source
+    line*: int          ## 1-based line in the bootstrap source
     construct*: string  ## what was found
     action*: string     ## what the migrator did about it
     kind*: MigNoteKind
@@ -40,7 +40,7 @@ type
   MigLine = object
     lineNo*: int
     indent*: int
-    toks*: seq[NimTok]
+    toks*: seq[SourceTok]
 
   EnumValue = object
     value: string
@@ -86,8 +86,8 @@ proc blank(e: Emitter) =
 # ---------------------------------------------------------------------------
 
 proc mapTypeName*(name: string): string =
-  ## Nim primitives onto EDL primitives. `int`/`uint` are architecture sized in
-  ## Nim, which is what `isize`/`usize` are in EDL.
+  ## Bootstrap primitives onto EDL primitives. `int`/`uint` are architecture
+  ## sized in the bootstrap dialect, which is what `isize`/`usize` are in EDL.
   case name
   of "int": "isize"
   of "uint": "usize"
@@ -117,19 +117,19 @@ proc isCollectionHead(name: string): bool =
 # Tokens -> logical lines
 # ---------------------------------------------------------------------------
 
-proc stripPragmas(e: Emitter, toks: seq[NimTok]): seq[NimTok] =
+proc stripPragmas(e: Emitter, toks: seq[SourceTok]): seq[SourceTok] =
   ## Removes `{. ... .}` runs. EDL has no pragmas: every one of them is logged,
   ## because `{.raises.}` or `{.inline.}` cannot be honoured later.
   result = @[]
   var i = 0
   while i < toks.len:
-    if toks[i].kind == nkPunct and toks[i].text == "{" and
-       i + 1 < toks.len and toks[i + 1].kind == nkPunct and
+    if toks[i].kind == skPunct and toks[i].text == "{" and
+       i + 1 < toks.len and toks[i + 1].kind == skPunct and
        toks[i + 1].text == ".":
       var j = i
       var closed = false
       while j < toks.len:
-        if toks[j].kind == nkPunct and toks[j].text == "}":
+        if toks[j].kind == skPunct and toks[j].text == "}":
           closed = true
           break
         inc j
@@ -145,16 +145,17 @@ proc stripPragmas(e: Emitter, toks: seq[NimTok]): seq[NimTok] =
 const routineKeywords = ["proc", "func", "iterator", "template", "macro",
                          "method", "converter"]
 
-proc cannotEndStatement(t: NimTok): bool =
-  ## True for a token after which Nim lets the statement run onto the next
+proc cannotEndStatement(t: SourceTok): bool =
+  ## True for a token after which the bootstrap dialect lets the statement run
+  ## onto the next
   ## source line (`a or\n b`, `f(x,\n y)`).
   case t.kind
-  of nkOperator:
+  of skOperator:
     result = t.text != "="
-  of nkPunct:
+  of skPunct:
     result = t.text == "," or t.text == "." or t.text == "(" or
              t.text == "[" or t.text == "{"
-  of nkKeyword:
+  of skKeyword:
     case t.text
     of "and", "or", "not", "in", "notin", "is", "isnot", "div", "mod",
        "shl", "shr", "xor": result = true
@@ -162,9 +163,9 @@ proc cannotEndStatement(t: NimTok): bool =
   else:
     result = false
 
-proc continuesStatement(line: seq[NimTok], prev: NimTok): bool =
+proc continuesStatement(line: seq[SourceTok], prev: SourceTok): bool =
   ## Whether the next source line continues the statement ending in `prev`.
-  if prev.kind == nkOperator and prev.text == "=":
+  if prev.kind == skOperator and prev.text == "=":
     # `proc f() =` opens a body, so the next line is a new statement.
     # `let x =` / `result =` continue an expression onto the next line.
     result = line.len > 0
@@ -174,7 +175,7 @@ proc continuesStatement(line: seq[NimTok], prev: NimTok): bool =
   else:
     result = cannotEndStatement(prev)
 
-proc groupLines(toks: seq[NimTok]): seq[MigLine] =
+proc groupLines(toks: seq[SourceTok]): seq[MigLine] =
   ## Splits the token stream into logical lines. A token starts a new logical
   ## line only when no bracket is open and the previous token could end a
   ## statement, so `f(x,\n y)` and `a or\n b` each stay one statement.
@@ -182,11 +183,11 @@ proc groupLines(toks: seq[NimTok]): seq[MigLine] =
   var depth = 0
   var previousLine = -1
   for tok in toks:
-    if tok.kind == nkEof:
+    if tok.kind == skEof:
       break
-    let opens = tok.kind == nkPunct and
+    let opens = tok.kind == skPunct and
       (tok.text == "(" or tok.text == "[" or tok.text == "{")
-    let closes = tok.kind == nkPunct and
+    let closes = tok.kind == skPunct and
       (tok.text == ")" or tok.text == "]" or tok.text == "}")
     # A logical line break needs a new source line, closed brackets, and a
     # previous token that could end a statement. Tracking the *previous token's*
@@ -211,7 +212,7 @@ proc groupLines(toks: seq[NimTok]): seq[MigLine] =
   var kept: seq[MigLine] = @[]
   for line in result:
     var toks = line.toks
-    while toks.len > 0 and toks[^1].kind == nkPunct and toks[^1].text == ";":
+    while toks.len > 0 and toks[^1].kind == skPunct and toks[^1].text == ";":
       toks.setLen(toks.len - 1)
     if toks.len > 0:
       kept.add(MigLine(lineNo: line.lineNo, indent: line.indent, toks: toks))
@@ -230,7 +231,7 @@ proc bodyOf(lines: seq[MigLine], header: int): tuple[first, stop: int] =
     return (header + 1, header + 1)
   result = (header + 1, blockStop(lines, header + 1, lines[header + 1].indent))
 
-proc sliceToks(toks: seq[NimTok], first, last: int): seq[NimTok] =
+proc sliceToks(toks: seq[SourceTok], first, last: int): seq[SourceTok] =
   ## Inclusive both ends. Returns empty when the range is empty or reversed.
   if toks.len == 0 or first > last or first >= toks.len:
     return @[]
@@ -267,7 +268,7 @@ proc statementExtent(lines: seq[MigLine], i, stop: int): int =
   if i >= stop or lines[i].toks.len == 0:
     return i + 1
   var head = ""
-  if lines[i].toks[0].kind == nkKeyword:
+  if lines[i].toks[0].kind == skKeyword:
     head = lines[i].toks[0].text
   case head
   of "if":
@@ -285,30 +286,30 @@ proc statementExtent(lines: seq[MigLine], i, stop: int): int =
 # Rendering tokens back to EDL text
 # ---------------------------------------------------------------------------
 
-proc isValueToken(t: NimTok): bool =
+proc isValueToken(t: SourceTok): bool =
   case t.kind
-  of nkIdent, nkNumber, nkString, nkChar: true
-  of nkPunct: t.text == ")" or t.text == "]" or t.text == "}"
+  of skIdent, skNumber, skString, skChar: true
+  of skPunct: t.text == ")" or t.text == "]" or t.text == "}"
   else: false
 
-proc noSpaceAfter(t: NimTok): bool =
-  if t.kind == nkPunct:
+proc noSpaceAfter(t: SourceTok): bool =
+  if t.kind == skPunct:
     result = t.text == "(" or t.text == "[" or t.text == "."
-  elif t.kind == nkOperator:
+  elif t.kind == skOperator:
     # `@[]` and `@[...]` read better without a space
     result = t.text == "@"
   else:
     result = false
 
-proc noSpaceBefore(t: NimTok): bool =
-  if t.kind == nkPunct:
+proc noSpaceBefore(t: SourceTok): bool =
+  if t.kind == skPunct:
     case t.text
     of ")", "]", ",", ".", "(", "[", ":", ";": result = true
     else: result = false
   else:
     result = false
 
-proc needsSpace(prev, cur: NimTok): bool =
+proc needsSpace(prev, cur: SourceTok): bool =
   if noSpaceAfter(prev):
     return false
   if noSpaceBefore(cur):
@@ -320,19 +321,19 @@ const unimplementedBuiltins = ["inc", "dec", "new", "default", "high",
   "delete", "pop", "contains", "count", "find", "startsWith", "endsWith",
   "split", "join", "strip", "toLower", "toUpper"]
 
-proc renderTokensImpl(e: Emitter, toks: seq[NimTok], asType: bool,
+proc renderTokensImpl(e: Emitter, toks: seq[SourceTok], asType: bool,
                       qualify: bool): string =
   ## Turns a token run back into EDL surface syntax, mapping what maps and
   ## reporting what does not.
   var texts: seq[string] = @[]
-  var source: seq[NimTok] = @[]
+  var source: seq[SourceTok] = @[]
   var i = 0
   while i < toks.len:
     let tok = toks[i]
     var text = tok.text
     var keep = true
     case tok.kind
-    of nkIdent:
+    of skIdent:
       if asType:
         text = mapTypeName(tok.text)
       else:
@@ -344,7 +345,7 @@ proc renderTokensImpl(e: Emitter, toks: seq[NimTok], asType: bool,
             blocking(e, tok.line, "the builtin `" & tok.text & "`",
               "no EDL equivalent yet (specs/types.md)")
         if qualify:
-          # Nim writes enum values unqualified; EDL requires `Type.Value`.
+          # The bootstrap dialect writes enum values unqualified; EDL requires `Type.Value`.
           if not (i > 0 and toks[i - 1].text == ".") and
              not (i + 1 < toks.len and toks[i + 1].text == "("):
             for enumValue in e.enumValues:
@@ -355,7 +356,8 @@ proc renderTokensImpl(e: Emitter, toks: seq[NimTok], asType: bool,
                 else:
                   text = enumValue.owner & "." & enumValue.value
                 break
-          # `Point(x: 1)` constructs an object in Nim. EDL has no literal for
+          # `Point(x: 1)` constructs an object in the bootstrap dialect. EDL has no
+          # literal for
           # that yet, and a call to a type is not a thing.
           if i + 1 < toks.len and toks[i + 1].text == "(":
             for declared in e.structs:
@@ -363,7 +365,7 @@ proc renderTokensImpl(e: Emitter, toks: seq[NimTok], asType: bool,
                 blocking(e, tok.line, "the construction `" & tok.text & "(...)`",
                   "EDL has no struct literal syntax yet (specs/types.md)")
                 break
-    of nkKeyword:
+    of skKeyword:
       case text
       of "div": text = "/"
       of "mod": text = "%"
@@ -374,10 +376,10 @@ proc renderTokensImpl(e: Emitter, toks: seq[NimTok], asType: bool,
       else:
         blocking(e, tok.line, "the keyword `" & text & "`",
           "no EDL equivalent yet")
-    of nkOperator:
+    of skOperator:
       case text
       of "&":
-        if i + 1 < toks.len and toks[i + 1].kind == nkString and
+        if i + 1 < toks.len and toks[i + 1].kind == skString and
            (i == 0 or not isValueToken(toks[i - 1])):
           blocking(e, tok.line, "string interpolation",
             "use `+` concatenation instead")
@@ -397,19 +399,19 @@ proc renderTokensImpl(e: Emitter, toks: seq[NimTok], asType: bool,
           "no EDL equivalent yet")
       else:
         discard
-    of nkBad:
+    of skBad:
       blocking(e, tok.line, "an unrecognised character",
         "the migrator only understands the bootstrap dialect")
-    of nkNumber:
+    of skNumber:
       # EDL has no literal suffixes; the type comes from the binding.
       let quote = tok.text.find('\'')
       if quote >= 0:
         advisory(e, tok.line, "the literal suffix on `" & tok.text & "`",
           "dropped; in EDL the type comes from context")
         text = tok.text[0 ..< quote]
-    of nkString, nkChar, nkPunct:
+    of skString, skChar, skPunct:
       discard
-    of nkEof:
+    of skEof:
       keep = false
     if keep:
       texts.add(text)
@@ -422,28 +424,28 @@ proc renderTokensImpl(e: Emitter, toks: seq[NimTok], asType: bool,
       result.add(' ')
     result.add(texts[idx])
 
-proc renderTokens(e: Emitter, toks: seq[NimTok], asType: bool): string =
+proc renderTokens(e: Emitter, toks: seq[SourceTok], asType: bool): string =
   ## Renders an expression or a type reference.
   result = renderTokensImpl(e, toks, asType, true)
 
-proc renderDeclaredName(e: Emitter, toks: seq[NimTok]): string =
+proc renderDeclaredName(e: Emitter, toks: seq[SourceTok]): string =
   ## Renders a name being *introduced* -- a field, a parameter, a local, an
   ## enum value. Such a name must never be qualified as a reference to itself.
   result = renderTokensImpl(e, toks, false, false)
 
-proc renderType(e: Emitter, toks: seq[NimTok], line: int, what: string): string =
+proc renderType(e: Emitter, toks: seq[SourceTok], line: int, what: string): string =
   if toks.len == 0:
     blocking(e, line, "a missing type annotation", what & " must be typed in EDL")
     return "unknown"
-  if toks[0].kind == nkIdent and isCollectionHead(toks[0].text):
+  if toks[0].kind == skIdent and isCollectionHead(toks[0].text):
     blocking(e, line, "the type `" & renderTokens(e, toks, true) & "`",
       "collections are not implemented yet (specs/types.md)")
     return "unknown"
-  if toks[0].kind == nkKeyword and (toks[0].text == "ref" or toks[0].text == "ptr"):
+  if toks[0].kind == skKeyword and (toks[0].text == "ref" or toks[0].text == "ptr"):
     blocking(e, line, "the type `" & renderTokens(e, toks, true) & "`",
       "references are not part of the EDL memory model yet (specs/memory.md)")
     return renderType(e, sliceToks(toks, 1, toks.len - 1), line, what)
-  if toks[0].kind == nkKeyword and toks[0].text == "tuple":
+  if toks[0].kind == skKeyword and toks[0].text == "tuple":
     blocking(e, line, "a tuple type",
       "tuples are not implemented yet (specs/types.md)")
     return "unknown"
@@ -453,36 +455,36 @@ proc renderType(e: Emitter, toks: seq[NimTok], line: int, what: string): string 
 # Small structural helpers
 # ---------------------------------------------------------------------------
 
-proc findTop(toks: seq[NimTok], text: string): int =
+proc findTop(toks: seq[SourceTok], text: string): int =
   ## Index of the first occurrence of `text` outside any bracket.
   var depth = 0
   for idx in 0 ..< toks.len:
     let tok = toks[idx]
-    if tok.kind == nkPunct:
+    if tok.kind == skPunct:
       case tok.text
       of "(", "[", "{": inc depth
       of ")", "]", "}": dec depth
       else: discard
     if depth == 0 and tok.text == text and
-       not (tok.kind == nkPunct and
+       not (tok.kind == skPunct and
             (tok.text == "(" or tok.text == "[" or tok.text == "{")):
       return idx
   result = -1
 
-proc findFirst(toks: seq[NimTok], text: string): int =
+proc findFirst(toks: seq[SourceTok], text: string): int =
   ## Index of the first token with this text, bracket or not.
   for idx in 0 ..< toks.len:
     if toks[idx].text == text:
       return idx
   result = -1
 
-proc firstColonTop(toks: seq[NimTok]): int =
+proc firstColonTop(toks: seq[SourceTok]): int =
   ## The colon that separates a header from its body. It is the first colon
   ## outside brackets: `if f(a): return` and `if a[0]: x` both work.
   var depth = 0
   for idx in 0 ..< toks.len:
     let tok = toks[idx]
-    if tok.kind == nkPunct:
+    if tok.kind == skPunct:
       case tok.text
       of "(", "[", "{": inc depth
       of ")", "]", "}": dec depth
@@ -492,10 +494,10 @@ proc firstColonTop(toks: seq[NimTok]): int =
       else: discard
   result = -1
 
-proc matchingParen(toks: seq[NimTok], open: int): int =
+proc matchingParen(toks: seq[SourceTok], open: int): int =
   var depth = 0
   for idx in open ..< toks.len:
-    if toks[idx].kind == nkPunct:
+    if toks[idx].kind == skPunct:
       if toks[idx].text == "(":
         inc depth
       elif toks[idx].text == ")":
@@ -504,7 +506,7 @@ proc matchingParen(toks: seq[NimTok], open: int): int =
           return idx
   result = -1
 
-proc splitTop(toks: seq[NimTok], separator: string): seq[seq[NimTok]] =
+proc splitTop(toks: seq[SourceTok], separator: string): seq[seq[SourceTok]] =
   ## Splits on `separator` outside any bracket.
   result = @[]
   var start = 0
@@ -512,7 +514,7 @@ proc splitTop(toks: seq[NimTok], separator: string): seq[seq[NimTok]] =
   var idx = 0
   while idx < toks.len:
     let tok = toks[idx]
-    if tok.kind == nkPunct:
+    if tok.kind == skPunct:
       case tok.text
       of "(", "[", "{": inc depth
       of ")", "]", "}": dec depth
@@ -523,19 +525,20 @@ proc splitTop(toks: seq[NimTok], separator: string): seq[seq[NimTok]] =
     inc idx
   result.add(sliceToks(toks, start, toks.len - 1))
 
-proc dropExportMarker(toks: seq[NimTok]): seq[NimTok] =
-  ## `name*` is Nim's export marker; EDL has no visibility modifiers yet.
-  if toks.len >= 2 and toks[1].kind == nkOperator and toks[1].text == "*":
+proc dropExportMarker(toks: seq[SourceTok]): seq[SourceTok] =
+  ## `name*` is the bootstrap dialect's export marker; EDL has no visibility
+  ## modifiers yet.
+  if toks.len >= 2 and toks[1].kind == skOperator and toks[1].text == "*":
     result = @[toks[0]]
     for idx in 2 ..< toks.len:
       result.add(toks[idx])
   else:
     result = toks
 
-proc isExportMarked(toks: seq[NimTok]): bool =
-  result = toks.len >= 2 and toks[1].kind == nkOperator and toks[1].text == "*"
+proc isExportMarked(toks: seq[SourceTok]): bool =
+  result = toks.len >= 2 and toks[1].kind == skOperator and toks[1].text == "*"
 
-proc renderRaw(toks: seq[NimTok]): string =
+proc renderRaw(toks: seq[SourceTok]): string =
   ## Joins token texts with no mapping and no reporting. Used for text that is
   ## already accounted for, such as a commented-out statement.
   result = ""
@@ -549,13 +552,13 @@ proc renderRaw(toks: seq[NimTok]): string =
 # ---------------------------------------------------------------------------
 
 proc gatherEnumValueNames(lines: seq[MigLine], header: int,
-                          kind: seq[NimTok]): seq[string] =
+                          kind: seq[SourceTok]): seq[string] =
   ## The value names of one `enum` item, from its header and its block.
   result = @[]
-  var valueToks: seq[NimTok] = sliceToks(kind, 1, kind.len - 1)
+  var valueToks: seq[SourceTok] = sliceToks(kind, 1, kind.len - 1)
   let (bodyFirst, bodyEnd) = bodyOf(lines, header)
   for idx in bodyFirst ..< bodyEnd:
-    valueToks.add(NimTok(kind: nkPunct, text: ",", line: lines[idx].lineNo,
+    valueToks.add(SourceTok(kind: skPunct, text: ",", line: lines[idx].lineNo,
       col: 1))
     for tok in lines[idx].toks:
       valueToks.add(tok)
@@ -590,11 +593,12 @@ proc registerTypeAt(e: Emitter, lines: seq[MigLine], header: int) =
       ambiguous: ambiguous))
   advisory(e, lines[header].lineNo, "the enum `" & typeName & "`",
     "its values are written `" & typeName &
-    ".Value` when referenced; Nim's unqualified form is not valid EDL")
+    ".Value` when referenced; the bootstrap dialect's unqualified form is not valid EDL")
 
 proc collectTypeNames(e: Emitter, lines: seq[MigLine]) =
   ## Pre-pass over the type sections. Without it a bare `Red` cannot be told
-  ## from a variable of the same name -- and Nim's unqualified enum values would
+  ## from a variable of the same name -- and the bootstrap dialect's unqualified
+  ## enum values would
   ## stay unqualified, which EDL rejects -- nor can `Point(...)` be recognised
   ## as an object construction rather than a call.
   var i = 0
@@ -621,7 +625,7 @@ proc collectTypeNames(e: Emitter, lines: seq[MigLine]) =
 
 proc translateRange(e: Emitter, lines: seq[MigLine], start, stop, level: int,
                     tail: TailMode)
-proc translateInlineStatement(e: Emitter, toks: seq[NimTok], level: int,
+proc translateInlineStatement(e: Emitter, toks: seq[SourceTok], level: int,
                               tail: TailMode)
 
 # ---------------------------------------------------------------------------
@@ -630,8 +634,9 @@ proc translateInlineStatement(e: Emitter, toks: seq[NimTok], level: int,
 
 const modifierKeywords = ["var", "sink", "lent", "typed", "in", "out"]
 
-proc renderParamSurfaces(e: Emitter, toks: seq[NimTok], line: int): seq[string] =
-  ## Renders the interior of a parameter list. Nim groups parameters with `;`
+proc renderParamSurfaces(e: Emitter, toks: seq[SourceTok], line: int): seq[string] =
+  ## Renders the interior of a parameter list. The bootstrap dialect groups
+  ## parameters with `;`
   ## and names within a group with `,`, so `a, b: int` is two parameters of one
   ## type while `p: Point; v: bool` is two groups.
   result = @[]
@@ -640,7 +645,7 @@ proc renderParamSurfaces(e: Emitter, toks: seq[NimTok], line: int): seq[string] 
       continue
     var part = group
     var isModifier = false
-    if part[0].kind == nkKeyword:
+    if part[0].kind == skKeyword:
       for modifier in modifierKeywords:
         if modifier == part[0].text:
           isModifier = true
@@ -678,12 +683,13 @@ proc translateRoutine(e: Emitter, lines: seq[MigLine], i, stop, level: int,
                       keyword: string): int =
   let line = lines[i]
   let toks = line.toks
-  # An operator definition, `proc `+`*(a, b: T): T`. Nim quotes such names in
+  # An operator definition, `proc `+`*(a, b: T): T`. The bootstrap dialect
+  # quotes such names in
   # backticks; EDL has no operator overloading, so it is named, not guessed at.
-  if toks.len > 2 and toks[1].kind == nkPunct and toks[1].text == "`":
+  if toks.len > 2 and toks[1].kind == skPunct and toks[1].text == "`":
     var closing = -1
     for idx in 2 ..< toks.len:
-      if toks[idx].kind == nkPunct and toks[idx].text == "`":
+      if toks[idx].kind == skPunct and toks[idx].text == "`":
         closing = idx
         break
     var operatorName = "?"
@@ -699,11 +705,11 @@ proc translateRoutine(e: Emitter, lines: seq[MigLine], i, stop, level: int,
   var nameIdx = -1
   var idx = 1
   while idx < toks.len:
-    if toks[idx].kind == nkIdent:
+    if toks[idx].kind == skIdent:
       name = toks[idx].text
       nameIdx = idx
       break
-    if toks[idx].kind == nkPunct and toks[idx].text == "(":
+    if toks[idx].kind == skPunct and toks[idx].text == "(":
       break
     inc idx
   if nameIdx < 0:
@@ -787,7 +793,7 @@ proc translateRoutine(e: Emitter, lines: seq[MigLine], i, stop, level: int,
 # Statements
 # ---------------------------------------------------------------------------
 
-proc conditionOf(e: Emitter, toks: seq[NimTok], what: string): string =
+proc conditionOf(e: Emitter, toks: seq[SourceTok], what: string): string =
   ## Everything between the keyword and the colon that opens the body.
   let colon = firstColonTop(toks)
   if colon >= 0:
@@ -797,7 +803,7 @@ proc conditionOf(e: Emitter, toks: seq[NimTok], what: string): string =
     blocking(e, toks[0].line, "the `" & what &
       "` header has no `:`", "the translated block may not be equivalent")
 
-proc inlineBodyOf(toks: seq[NimTok]): seq[NimTok] =
+proc inlineBodyOf(toks: seq[SourceTok]): seq[SourceTok] =
   ## The statement sharing a line with its header: `if x: return`.
   let colon = firstColonTop(toks)
   if colon >= 0 and colon + 1 < toks.len:
@@ -805,9 +811,9 @@ proc inlineBodyOf(toks: seq[NimTok]): seq[NimTok] =
   else:
     result = @[]
 
-proc splitIfSegments(toks: seq[NimTok]): seq[seq[NimTok]] =
+proc splitIfSegments(toks: seq[SourceTok]): seq[seq[SourceTok]] =
   ## One segment per branch. `if n < 0: 0 else: n` is two branches on one line,
-  ## which is how Nim writes an `if` expression.
+  ## which is how the bootstrap dialect writes an `if` expression.
   result = @[]
   var depth = 0
   var start = 0
@@ -815,7 +821,7 @@ proc splitIfSegments(toks: seq[NimTok]): seq[seq[NimTok]] =
   var idx = 0
   while idx < toks.len:
     let tok = toks[idx]
-    if tok.kind == nkPunct:
+    if tok.kind == skPunct:
       case tok.text
       of "(", "[", "{": inc depth
       of ")", "]", "}": dec depth
@@ -823,7 +829,7 @@ proc splitIfSegments(toks: seq[NimTok]): seq[seq[NimTok]] =
         if depth == 0:
           seenColon = true
       else: discard
-    if depth == 0 and seenColon and idx > start and tok.kind == nkKeyword and
+    if depth == 0 and seenColon and idx > start and tok.kind == skKeyword and
        (tok.text == "else" or tok.text == "elif"):
       result.add(sliceToks(toks, start, idx - 1))
       start = idx
@@ -894,7 +900,7 @@ proc translateBlockStatement(e: Emitter, lines: seq[MigLine], i, stop, level: in
                              tail: TailMode): int =
   let line = lines[i]
   var toks = sliceToks(line.toks, 1, line.toks.len - 1)
-  if toks.len > 0 and toks[0].kind == nkIdent:
+  if toks.len > 0 and toks[0].kind == skIdent:
     blocking(e, line.lineNo, "a labelled `block`",
       "labelled blocks are not part of EDL; the label was dropped")
     toks = sliceToks(toks, 1, toks.len - 1)
@@ -934,7 +940,7 @@ proc translateFor(e: Emitter, lines: seq[MigLine], i, stop, level: int,
 
   var rangeAt = -1
   for idx in 0 ..< iterToks.len:
-    if iterToks[idx].kind == nkOperator and
+    if iterToks[idx].kind == skOperator and
        (iterToks[idx].text == ".." or iterToks[idx].text == "..<"):
       rangeAt = idx
       break
@@ -953,7 +959,7 @@ proc translateFor(e: Emitter, lines: seq[MigLine], i, stop, level: int,
   var boundIsSimple = true
   let hiToks = sliceToks(iterToks, rangeAt + 1, iterToks.len - 1)
   if hiToks.len != 1 or
-     (hiToks[0].kind != nkIdent and hiToks[0].kind != nkNumber):
+     (hiToks[0].kind != skIdent and hiToks[0].kind != skNumber):
     boundIsSimple = false
   if not boundIsSimple:
     advisory(e, line.lineNo, "a `for` bound that is not a simple name",
@@ -1007,7 +1013,7 @@ proc translateCase(e: Emitter, lines: seq[MigLine], i, stop, level: int,
           continue
         var hasRange = false
         for tok in alternative:
-          if tok.kind == nkOperator and
+          if tok.kind == skOperator and
              (tok.text == ".." or tok.text == "..<"):
             hasRange = true
         if hasRange:
@@ -1051,7 +1057,7 @@ proc translateBinding(e: Emitter, lines: seq[MigLine], i, level: int,
   let rest = sliceToks(toks, 1, toks.len - 1)
   let equals = findTop(rest, "=")
   var lhs = rest
-  var rhs: seq[NimTok] = @[]
+  var rhs: seq[SourceTok] = @[]
   if equals >= 0:
     lhs = sliceToks(rest, 0, equals - 1)
     rhs = sliceToks(rest, equals + 1, rest.len - 1)
@@ -1061,7 +1067,7 @@ proc translateBinding(e: Emitter, lines: seq[MigLine], i, level: int,
       "the declaration was dropped")
     return i + 1
 
-  if lhs[0].kind == nkPunct and lhs[0].text == "(":
+  if lhs[0].kind == skPunct and lhs[0].text == "(":
     blocking(e, line.lineNo, "a tuple destructuring " & keyword,
       "tuple unpacking is not supported yet (specs/types.md)")
     e.write(level, "// " & renderRaw(line.toks))
@@ -1095,11 +1101,12 @@ proc translateExpressionStatement(e: Emitter, lines: seq[MigLine], i,
   let line = lines[i]
   let toks = line.toks
   let head = toks[0]
-  # `result = expr` is Nim's return value, but only a *tail* assignment is a
+  # `result = expr` is the bootstrap dialect's return value, but only a *tail*
+  # assignment is a
   # `return`: anywhere else the routine carries on afterwards, and rewriting it
   # would silently change the program.
-  if head.kind == nkIdent and head.text == "result" and toks.len >= 2 and
-     toks[1].kind == nkOperator and toks[1].text == "=":
+  if head.kind == skIdent and head.text == "result" and toks.len >= 2 and
+     toks[1].kind == skOperator and toks[1].text == "=":
     let rhs = sliceToks(toks, 2, toks.len - 1)
     if tail != tmNone:
       advisory(e, line.lineNo, "an assignment to `result`",
@@ -1111,7 +1118,7 @@ proc translateExpressionStatement(e: Emitter, lines: seq[MigLine], i,
         "statement; restructure the routine so it ends in `return`")
       e.write(level, "result = " & renderTokens(e, rhs, false))
     return i + 1
-  if head.kind == nkIdent and (head.text == "inc" or head.text == "dec"):
+  if head.kind == skIdent and (head.text == "inc" or head.text == "dec"):
     let target = renderTokens(e, sliceToks(toks, 1, toks.len - 1), false)
     if head.text == "inc":
       e.write(level, target & " = " & target & " + 1")
@@ -1120,7 +1127,7 @@ proc translateExpressionStatement(e: Emitter, lines: seq[MigLine], i,
     advisory(e, line.lineNo, "`" & head.text & "`",
       "rewritten as an explicit assignment")
     return i + 1
-  if head.kind == nkIdent and head.text == "echo":
+  if head.kind == skIdent and head.text == "echo":
     let args = splitTop(sliceToks(toks, 1, toks.len - 1), ",")
     if args.len > 1:
       blocking(e, line.lineNo, "`echo` with several arguments",
@@ -1138,14 +1145,15 @@ proc translateExpressionStatement(e: Emitter, lines: seq[MigLine], i,
       e.write(level, rendered)
   result = i + 1
 
-proc translateInlineStatement(e: Emitter, toks: seq[NimTok], level: int,
+proc translateInlineStatement(e: Emitter, toks: seq[SourceTok], level: int,
                               tail: TailMode) =
   ## A statement sharing its line with a header (`if x: return y`). Only the
-  ## single-statement forms exist in Nim, so those are all that is handled.
+  ## single-statement forms exist in the bootstrap dialect, so those are all
+  ## that is handled.
   if toks.len == 0:
     return
   let head = toks[0]
-  if head.kind == nkKeyword:
+  if head.kind == skKeyword:
     case head.text
     of "return":
       let value = sliceToks(toks, 1, toks.len - 1)
@@ -1180,7 +1188,7 @@ proc translateRange(e: Emitter, lines: seq[MigLine], start, stop, level: int,
     let head = line.toks[0]
     # a single-line statement is in tail position when it is the range's last
     let lastInRange = if i + 1 >= stop: tail else: tmNone
-    if head.kind == nkKeyword:
+    if head.kind == skKeyword:
       case head.text
       of "if":
         i = translateIf(e, lines, i, stop, level, tail)
@@ -1294,9 +1302,9 @@ proc translateTypeItem(e: Emitter, lines: seq[MigLine], i, level: int): int =
     e.write(level, "}")
   elif kind.len > 0 and kind[0].text == "enum":
     e.write(level, "enum " & name & " {")
-    var valueToks: seq[NimTok] = sliceToks(kind, 1, kind.len - 1)
+    var valueToks: seq[SourceTok] = sliceToks(kind, 1, kind.len - 1)
     for idx in bodyFirst ..< bodyEnd:
-      valueToks.add(NimTok(kind: nkPunct, text: ",", line: lines[idx].lineNo,
+      valueToks.add(SourceTok(kind: skPunct, text: ",", line: lines[idx].lineNo,
         col: 1))
       for tok in lines[idx].toks:
         valueToks.add(tok)
@@ -1341,7 +1349,7 @@ proc translateTopLevel(e: Emitter, lines: seq[MigLine]) =
   while i < lines.len:
     let line = lines[i]
     let head = line.toks[0]
-    if head.kind == nkKeyword:
+    if head.kind == skKeyword:
       case head.text
       of "import", "from":
         i = translateImports(e, lines, i)
@@ -1379,9 +1387,9 @@ proc translateTopLevel(e: Emitter, lines: seq[MigLine]) =
 # ---------------------------------------------------------------------------
 
 proc migrateSource*(source: string, sourcePath: string): MigrateResult =
-  ## Translates Nim bootstrap-dialect source to EDL. Pure: no file access.
+  ## Translates bootstrap-dialect source to EDL. Pure: no file access.
   let e = Emitter(buf: "", notes: @[])
-  let raw = tokenizeNim(source)
+  let raw = tokenizeBootstrap(source)
   let toks = stripPragmas(e, raw)
   let lines = groupLines(toks)
   collectTypeNames(e, lines)

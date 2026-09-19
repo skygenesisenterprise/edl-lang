@@ -1,9 +1,10 @@
 ## Migration tests.
 ##
-## The last test is the one that matters: a Nim source file is translated, and
-## the translated EDL is then compiled *and run* by the EDL compiler, with its
-## output compared against what the original program prints. Passing means the
-## migrator produces real EDL -- not text that merely resembles it.
+## The last test is the one that matters: a bootstrap-dialect source file is
+## translated, and the translated EDL is then compiled *and run* by the EDL
+## compiler, with its output compared against what the original program prints.
+## Passing means the migrator produces real EDL -- not text that merely
+## resembles it.
 ##
 ## The earlier tests pin down individual translations and, just as importantly,
 ## the report: a construct with no EDL equivalent must be *named*, never
@@ -31,11 +32,11 @@ proc blockingCount(r: MigrateResult): int =
 proc advisoryCount(r: MigrateResult): int =
   result = countNotes(r.notes, mnAdvisory)
 
-proc roundTrip(name, nimSource: string): tuple[ok: bool, output: string,
-                                               detail: string] =
+proc roundTrip(name, bootstrapSource: string): tuple[ok: bool, output: string,
+                                                       detail: string] =
   ## Translate, compile the translation, run it.
   createDir(outRoot)
-  let r = migrateSource(nimSource, name & ".nim")
+  let r = migrateSource(bootstrapSource, name & ".nim")
   let edlPath = outRoot / (name & ".edl")
   writeFile(edlPath, r.edlSource)
   var opts = CompileOptions()

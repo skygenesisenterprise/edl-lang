@@ -75,6 +75,6 @@ jobs:
         shell: bash
         run: . ci/funs.sh && nimBuildCsourcesIfNeeded CC=gcc ucpu='${{ matrix.cpu }}'
 
-      - name: 'koch, Run CI'
+      - name: 'Run bootstrap substrate CI'
         shell: bash
         run: . ci/funs.sh && nimInternalBuildKochAndRunCI

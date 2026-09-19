@@ -1,9 +1,9 @@
-## Nim tokenizer for the migrator.
+## Bootstrap-dialect tokenizer for the migrator.
 ##
-## Deliberately small: it tokenises the Nim *bootstrap dialect* (ADR-0001), the
+## Deliberately small: it tokenises the *bootstrap dialect* (ADR-0001), the
 ## subset EDL's own toolchain is written in, and nothing else. It does not need
-## to understand Nim's full lexical grammar because the migrator refuses, and
-## reports, anything outside that dialect.
+## to understand the full lexical grammar of the bootstrap source because the
+## migrator refuses, and reports, anything outside that dialect.
 ##
 ## Comments are dropped, but `#[ ]#` and `#` are recognised so that commented-out
 ## code cannot leak into the translation. Indentation is not tokenised: every
@@ -13,24 +13,24 @@
 ## Bootstrap dialect: see specs/decisions/ADR-0001.
 
 type
-  NimTokKind* = enum
-    nkEof
-    nkIdent
-    nkKeyword
-    nkNumber
-    nkString
-    nkChar
-    nkOperator
-    nkPunct
-    nkBad
+  SourceTokKind* = enum
+    skEof
+    skIdent
+    skKeyword
+    skNumber
+    skString
+    skChar
+    skOperator
+    skPunct
+    skBad
 
-  NimTok* = object
-    kind*: NimTokKind
+  SourceTok* = object
+    kind*: SourceTokKind
     text*: string
     line*: int     ## 1-based
     col*: int      ## 1-based
 
-const nimKeywords = @[
+const bootstrapKeywords = @[
   "addr", "and", "as", "asm", "bind", "block", "break", "case", "cast",
   "concept", "const", "continue", "converter", "defer", "discard", "distinct",
   "div", "do", "elif", "else", "end", "enum", "except", "export", "finally",
@@ -42,7 +42,7 @@ const nimKeywords = @[
 ]
 
 proc isKeywordWord*(word: string): bool =
-  for keyword in nimKeywords:
+  for keyword in bootstrapKeywords:
     if keyword == word:
       return true
   result = false
@@ -92,7 +92,7 @@ proc skipLineComment(s: ScanningState) =
     discard s.advance()
 
 proc skipBlockComment(s: ScanningState) =
-  ## Nim's `#[ ... ]#`, which nests.
+  ## The bootstrap dialect's `#[ ... ]#`, which nests.
   discard s.advance()
   discard s.advance()
   var depth = 1
@@ -122,13 +122,13 @@ proc skipTrivia(s: ScanningState) =
         skipLineComment(s)
       again = true
 
-proc scanString(s: ScanningState): NimTok =
+proc scanString(s: ScanningState): SourceTok =
   ## `s.pos` is on the opening quote. Triple-quoted strings are marked invalid,
   ## since EDL has no equivalent.
   let startLine = s.line
   let startCol = s.col
   if s.peek(1) == '"' and s.peek(2) == '"':
-    result = NimTok(kind: nkBad, text: "\"\"\"", line: startLine, col: startCol)
+    result = SourceTok(kind: skBad, text: "\"\"\"", line: startLine, col: startCol)
     discard s.advance()
     discard s.advance()
     discard s.advance()
@@ -146,10 +146,11 @@ proc scanString(s: ScanningState): NimTok =
   if s.peek(0) == '"':
     discard s.advance()
   value.add('"')
-  result = NimTok(kind: nkString, text: value, line: startLine, col: startCol)
+  result = SourceTok(kind: skString, text: value, line: startLine, col: startCol)
 
-proc scanNumber(s: ScanningState): NimTok =
-  ## Also consumes Nim's type suffix (`0'i64`, `1'u8`, `2.0'f32`). Leaving it to
+proc scanNumber(s: ScanningState): SourceTok =
+  ## Also consumes the bootstrap dialect's type suffix (`0'i64`, `1'u8`,
+  ## `2.0'f32`). Leaving it to
   ## the character-literal scanner would swallow the rest of the line, closing
   ## brackets included.
   let startLine = s.line
@@ -171,9 +172,9 @@ proc scanNumber(s: ScanningState): NimTok =
     text.add(s.advance())
     while isIdentPart(s.peek(0)):
       text.add(s.advance())
-  result = NimTok(kind: nkNumber, text: text, line: startLine, col: startCol)
+  result = SourceTok(kind: skNumber, text: text, line: startLine, col: startCol)
 
-proc scanChar(s: ScanningState): NimTok =
+proc scanChar(s: ScanningState): SourceTok =
   ## An unterminated literal is marked invalid rather than run to the end of the
   ## line: a bad token must never silently hide the code after it.
   let startLine = s.line
@@ -186,31 +187,31 @@ proc scanChar(s: ScanningState): NimTok =
     if ch == '\\' and s.peek(0) != '\0' and s.peek(0) != '\n':
       text.add(s.advance())
   if s.peek(0) != '\'':
-    return NimTok(kind: nkBad, text: text, line: startLine, col: startCol)
+    return SourceTok(kind: skBad, text: text, line: startLine, col: startCol)
   discard s.advance()
   text.add("'")
-  result = NimTok(kind: nkChar, text: text, line: startLine, col: startCol)
+  result = SourceTok(kind: skChar, text: text, line: startLine, col: startCol)
 
-proc scanIdent(s: ScanningState): NimTok =
+proc scanIdent(s: ScanningState): SourceTok =
   let startLine = s.line
   let startCol = s.col
   var text = ""
   while isIdentPart(s.peek(0)):
     text.add(s.advance())
-  var kind = nkIdent
+  var kind = skIdent
   if isKeywordWord(text):
-    kind = nkKeyword
-  result = NimTok(kind: kind, text: text, line: startLine, col: startCol)
+    kind = skKeyword
+  result = SourceTok(kind: kind, text: text, line: startLine, col: startCol)
 
-proc scanOperator(s: ScanningState): NimTok =
+proc scanOperator(s: ScanningState): SourceTok =
   let startLine = s.line
   let startCol = s.col
   var text = ""
   while isOperatorChar(s.peek(0)):
     text.add(s.advance())
-  result = NimTok(kind: nkOperator, text: text, line: startLine, col: startCol)
+  result = SourceTok(kind: skOperator, text: text, line: startLine, col: startCol)
 
-proc tokenizeNim*(src: string): seq[NimTok] =
+proc tokenizeBootstrap*(src: string): seq[SourceTok] =
   ## Tokenizes `src`. Comments and whitespace are dropped; every token keeps its
   ## source position so the translator can reconstruct block structure.
   let s = ScanningState(src: src, pos: 0, line: 1, col: 1)
@@ -218,7 +219,7 @@ proc tokenizeNim*(src: string): seq[NimTok] =
   while true:
     skipTrivia(s)
     if s.pos >= s.src.len:
-      result.add(NimTok(kind: nkEof, text: "", line: s.line, col: s.col))
+      result.add(SourceTok(kind: skEof, text: "", line: s.line, col: s.col))
       break
     let startLine = s.line
     let startCol = s.col
@@ -240,12 +241,12 @@ proc tokenizeNim*(src: string): seq[NimTok] =
       var text = ".."
       if s.peek(0) == '<':
         text.add(s.advance())
-      result.add(NimTok(kind: nkOperator, text: text, line: startLine, col: startCol))
+      result.add(SourceTok(kind: skOperator, text: text, line: startLine, col: startCol))
     elif ch == '(' or ch == ')' or ch == '[' or ch == ']' or ch == '{' or
          ch == '}' or ch == ',' or ch == ';' or ch == '.' or ch == ':' or
          ch == '`':
       discard s.advance()
-      result.add(NimTok(kind: nkPunct, text: $ch, line: startLine, col: startCol))
+      result.add(SourceTok(kind: skPunct, text: $ch, line: startLine, col: startCol))
     else:
       discard s.advance()
-      result.add(NimTok(kind: nkBad, text: $ch, line: startLine, col: startCol))
+      result.add(SourceTok(kind: skBad, text: $ch, line: startLine, col: startCol))

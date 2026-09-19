@@ -9,9 +9,9 @@ body:
     value: |
       - Please provide a minimal code example that illustrates the basic idea behind your feature request.
         Reports with full repro code and descriptive detailed information will likely receive feedback faster.
-      - There is a separate repository for the detailed RFCs and proposals: https://github.com/nim-lang/RFCs.
-        If you have a simple feature request, you can post it here using this form,
-        but bear in mind that adding new features to the language is currently a low priority.
+      - Language and toolchain proposals are discussed in the EDL specification (`specs/`) and its decision
+        records (`specs/decisions/`). Feature requests for the language itself are currently a low priority
+        until the bootstrap toolchain is complete.
 
 - type: textarea
   id: summary
@@ -66,7 +66,7 @@ body:
 - type: markdown
   attributes:
     value: |
-      - Thanks for your contributions!, your ideas will receive feedback from the community soon...
-      - **Remember to :star: Star the Nim project on GitHub!.**
-      - Consider writing a PR targetting devel branch after filing this, see [contributing](https://nim-lang.github.io/Nim/contributing.html).
-      - [Please, consider a Donation for the Nim project.](https://nim-lang.org/donate.html)
+      - Thanks for your contributions! Your ideas will receive feedback from the community soon.
+      - **Remember to :star: Star the EDL project on GitHub!.**
+      - Consider writing a PR targeting the `devel` branch after filing this; see the project's
+        [contributing guide](https://github.com/skygenesisenterprise/edl-lang/blob/devel/readme.md#contributing).

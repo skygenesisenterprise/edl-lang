@@ -1,0 +1,112 @@
+name: EDL release
+
+# Builds the EDL compiler for Linux, Windows and macOS and attaches the
+# binaries to a GitHub release created for a `vX.Y.Z` tag.
+#
+# Tag convention:
+#   vX.Y.Z          -> this workflow (general EDL release)
+#   vX.Y.Z-vscode   -> the VS Code workflow (packages/vscode/.github...),
+#                      intentionally NOT triggered here.
+#
+# Because the EDL compiler is currently written in the bootstrap dialect and
+# compiled by the Nim bootstrap substrate, each job first builds the substrate
+# (`build_all.sh`) and then the EDL compiler (`edl/scripts/build.sh`). This is
+# the same, verified path used by `edl/scripts/build.sh` locally; the substrate
+# build is a temporary step that disappears when `edl build` can compile the
+# compiler itself.
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version to tag, without the leading v (e.g. 0.1.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: edl-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build EDL compiler (${{ matrix.artifact }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact: edl-linux-x64
+          - os: macos-latest
+            artifact: edl-macos-arm64
+          - os: macos-13
+            artifact: edl-macos-x64
+          - os: windows-latest
+            artifact: edl-windows-x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends build-essential git make
+
+      - name: Install build dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: brew install make gcc git
+
+      - name: Build the bootstrap substrate
+        if: runner.os != 'Windows'
+        shell: bash
+        run: ./build_all.sh
+
+      - name: Build the bootstrap substrate (Windows)
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: build_all.bat
+
+      - name: Build the EDL compiler
+        shell: bash
+        run: edl/scripts/build.sh
+
+      - name: Verify the EDL compiler
+        shell: bash
+        run: |
+          BIN="build/edl/edlc"
+          [ -f "$BIN" ] || BIN="build/edl/edlc.exe"
+          test -x "$BIN" || { echo "compiler binary not found: $BIN" >&2; exit 1; }
+          "$BIN" --version
+
+      - name: Stage the release binary
+        shell: bash
+        run: |
+          BIN="build/edl/edlc"
+          [ -f "$BIN" ] || BIN="build/edl/edlc.exe"
+          mkdir -p dist
+          cp "$BIN" "dist/${{ matrix.artifact }}"
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist/${{ matrix.artifact }}
+          if-no-files-found: error
+
+      - name: Attach binary to the release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', inputs.version) || github.ref_name }}
+          files: dist/${{ matrix.artifact }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

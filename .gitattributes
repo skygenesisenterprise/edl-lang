@@ -4,6 +4,11 @@
 # duplicated, which is easily identifiable and fixable.
 /changelog.md merge=union
 
-# bug https://github.com/dom96/choosenim/issues/256 for WSL CRLF
+# Shell scripts and bootstrap config files must stay LF on every platform (WSL CRLF bug).
 *.sh text eol=lf
 /config/build_config.txt text eol=lf
+
+# GitHub Linguist: classify .edl as EDL rather than any other language.
+# Full upstream recognition requires a contribution to github-linguist/linguist;
+# until then this override expresses intent and keeps .edl from being mislabelled.
+*.edl linguist-language=EDL

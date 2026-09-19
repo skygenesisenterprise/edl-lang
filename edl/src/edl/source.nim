@@ -1,11 +1,12 @@
 ## EDL source tracking: files, positions, spans and line lookup.
 ##
 ## This module belongs to the EDL compiler frontend. It knows nothing about
-## Nim: `SourceFile` is the EDL representation of a compilation unit.
+## the bootstrap substrate: `SourceFile` is the EDL representation of a
+## compilation unit.
 ##
 ## Bootstrap dialect (see specs/decisions/ADR-0001): plain procs, objects and
 ## enums only. No macros, no templates, no custom pragmas -- so that the
-## Nim-to-EDL migrator can translate this file without handling macro
+## bootstrap-to-EDL migrator can translate this file without handling macro
 ## semantics.
 
 type

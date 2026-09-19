@@ -1,7 +1,8 @@
 ## EDL tokens.
 ##
-## A `Token` is a flat object (no variant) so the Nim-to-EDL migrator never has
-## to translate Nim case-object semantics. Unused value fields are simply
+## A `Token` is a flat object (no variant) so the bootstrap-to-EDL migrator
+## never has to translate bootstrap case-object semantics. Unused value fields
+## are simply
 ## zero-initialised.
 ##
 ## Reserved-for-later tokens (`?`, `->`) are lexed but not yet parsed; the

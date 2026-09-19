@@ -7,7 +7,7 @@
 ##   edlc run       <file.edl>          build, then run
 ##   edlc emit-nim  <file.edl>          stop after emitting backend source
 ##   edlc emit-ast  <file.edl>          print the parsed syntax tree
-##   edlc migrate   <file.nim>          translate Nim to EDL, with a report
+##   edlc migrate   <file.nim>          translate bootstrap-dialect source to EDL, with a report
 ##   edlc version
 ##   edlc help
 ##
@@ -39,7 +39,7 @@ proc printUsage() =
   echo "  run       build a program and run it"
   echo "  emit-nim  stop after emitting the bootstrap backend source"
   echo "  emit-ast  print the parsed syntax tree"
-  echo "  migrate   translate a Nim source file to EDL and report what could not be"
+  echo "  migrate   translate a bootstrap-dialect source file to EDL and report what could not be"
   echo "  version   print the compiler version"
   echo "  help      print this message"
   echo "  init, fmt, test, doc, add, remove   not implemented yet"
@@ -83,7 +83,7 @@ proc runCompileCommand(command: string, args: seq[string]): int =
       if i + 1 >= args.len:
         return usageError("'" & arg & "' needs a path")
       inc i
-      opts.nimExe = args[i]
+      opts.bootstrapExe = args[i]
     of "--print":
       printSource = true
     of "--dump-ir":
@@ -151,7 +151,8 @@ proc runCompileCommand(command: string, args: seq[string]): int =
       0
 
 proc runMigrateCommand(args: seq[string]): int =
-  ## `edl migrate` reads Nim and writes EDL. The report is the point: it names
+  ## `edl migrate` reads bootstrap-dialect source and writes EDL. The report is
+  ## the point: it names
   ## every construct that has no EDL equivalent yet.
   var inputPath = ""
   var outputPath = ""

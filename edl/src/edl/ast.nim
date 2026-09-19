@@ -1,11 +1,12 @@
 ## The EDL abstract syntax tree.
 ##
-## This tree is EDL's own. It is deliberately *not* Nim's `compiler/ast.nim`,
-## even though both are trees over a similar problem: sharing Nim's AST would
-## import Nim's node kinds and semantics into the EDL language.
+## This tree is EDL's own. It is deliberately *not* the substrate's
+## `compiler/ast.nim`, even though both are trees over a similar problem:
+## sharing the substrate's AST would import the substrate's node kinds and
+## semantics into the EDL language.
 ##
 ## Nodes are flat tagged objects (a `kind` plus every possible field) rather than
-## Nim case-objects, so that the structure is trivially expressible in EDL.
+## substrate case-objects, so that the structure is trivially expressible in EDL.
 ##
 ## Semantic information (resolved symbols, inferred types) is *not* stored here.
 ## It lives in side tables indexed by `Node.id`, keeping syntax and semantics in
