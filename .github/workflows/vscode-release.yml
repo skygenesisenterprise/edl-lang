@@ -2,8 +2,12 @@ name: VS Code extension release
 
 on:
   push:
+    # VS Code extension releases use the `vX.Y.Z-vscode` tag convention
+    # (e.g. v0.1.0-vscode). Generic EDL tags without the `-vscode` suffix
+    # (e.g. v0.1.0) are reserved for general EDL releases and must NOT trigger
+    # this workflow.
     tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-vscode'
   workflow_dispatch:
 
 permissions:
@@ -19,6 +23,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Extract extension version from tag
+        id: version
+        run: |
+          # Tag format: v0.1.0-vscode  ->  version: 0.1.0
+          # The `-vscode` suffix and leading `v` are never part of the version.
+          TAG="${GITHUB_REF#refs/tags/}"
+          VERSION="${TAG#v}"
+          VERSION="${VERSION%-vscode}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -42,7 +57,7 @@ jobs:
       - name: Create GitHub release with VSIX
         uses: softprops/action-gh-release@v2
         with:
-          files: packages/vscode/edl-*.vsix
+          files: packages/vscode/edl-language-support-${{ steps.version.outputs.version }}.vsix
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
