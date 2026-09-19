@@ -1,0 +1,44 @@
+---
+import '../styles/global.css';
+const { title = 'EDL — Engineering Definition Language', description = 'EDL is an experimental systems programming language and toolchain.', canonical } = Astro.props;
+const site = 'https://edl-lang.github.io';
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical ?? site + Astro.url.pathname} />
+    <meta property="og:type" content="website" /><meta property="og:title" content={title} />
+    <meta property="og:description" content={description} /><meta property="og:url" content={canonical ?? site + Astro.url.pathname} />
+    <meta name="twitter:card" content="summary" /><meta name="twitter:title" content={title} /><meta name="twitter:description" content={description} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <header class="site-header"><nav class="nav" aria-label="Primary">
+      <a class="brand" href="/">EDL</a>
+      <div class="nav-links"><a href="/docs">Docs</a><a href="/docs/language">Language</a><a href="/docs/toolchain">Toolchain</a><a href="/docs/tooling/vscode">VS Code</a><a href="/releases">Releases</a><a href="https://github.com/skygenesisenterprise/edl-lang">GitHub</a><button class="theme-toggle" type="button" aria-pressed="false">Dark mode</button></div>
+    </nav></header>
+    <main><slot /></main>
+    <footer>EDL is an open experimental project. <a href="https://github.com/skygenesisenterprise/edl-lang">View the source on GitHub</a>.</footer>
+  </body>
+  <script>
+    const button = document.querySelector('.theme-toggle');
+    const storedTheme = localStorage.getItem('edl-theme');
+    if (storedTheme) document.documentElement.dataset.theme = storedTheme;
+    const updateThemeLabel = () => {
+      const dark = document.documentElement.dataset.theme === 'dark';
+      button?.setAttribute('aria-pressed', String(dark));
+      if (button) button.textContent = dark ? 'Light mode' : 'Dark mode';
+    };
+    updateThemeLabel();
+    button?.addEventListener('click', () => {
+      const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+      document.documentElement.dataset.theme = next;
+      localStorage.setItem('edl-theme', next);
+      updateThemeLabel();
+    });
+  </script>
+</html>

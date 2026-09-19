@@ -1,0 +1,21 @@
+---
+interface Props {
+  code: string;
+}
+
+const { code } = Astro.props;
+const escapeHtml = (value: string) =>
+  value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
+const highlight = (value: string) =>
+  escapeHtml(value).replace(
+    /(&quot;(?:\\.|[^&]|&(?!quot;))*?&quot;)|(\/\/.*$)|\b(fn|let|return|struct|enum|if|else|for|while|main)\b|\b(string|bool|int|float|char)\b/gm,
+    (match, stringLiteral, comment, keyword, type) => {
+      if (stringLiteral) return `<span class="token-string">${match}</span>`;
+      if (comment) return `<span class="token-comment">${match}</span>`;
+      if (keyword) return `<span class="token-keyword">${match}</span>`;
+      if (type) return `<span class="token-type">${match}</span>`;
+      return match;
+    },
+  );
+---
+<pre class="language-edl" aria-label="EDL code example"><code set:html={highlight(code)} /></pre>

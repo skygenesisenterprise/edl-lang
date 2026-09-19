@@ -1,0 +1,13 @@
+---
+import Layout from './Layout.astro';
+const { title, description } = Astro.props;
+---
+<Layout title={`${title} · EDL`} description={description}>
+  <div class="layout">
+    <aside class="sidebar" aria-label="Documentation">
+      <strong>Documentation</strong>
+      <a href="/docs">Overview</a><a href="/docs/getting-started">Getting started</a><a href="/docs/language">Language</a><a href="/docs/toolchain">Toolchain</a><a href="/docs/tooling/vscode">VS Code</a><a href="/docs/standard-library">Standard library</a><a href="/docs/specification">Specification</a><a href="/releases">Releases</a><a href="/docs/contributing">Contributing</a>
+    </aside>
+    <article><slot /></article>
+  </div>
+</Layout>

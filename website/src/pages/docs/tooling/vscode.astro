@@ -1,0 +1,7 @@
+---
+import Docs from '../../../layouts/Docs.astro';
+---
+<Docs title="VS Code"><h1>VS Code</h1><p>The repository includes an official VS Code extension package under <code>packages/vscode</code>, with syntax support for EDL files.</p><h2>Install from the repository</h2><p>The Marketplace publication is being prepared. Until then, build a VSIX locally:</p><pre><code>cd packages/vscode
+npm install
+npm run check
+npm run package</code></pre><p>Install the generated <code>edl-*.vsix</code> with VS Code's “Install from VSIX…” command. The extension currently provides language recognition, TextMate highlighting, snippets, indentation and folding.</p><h2>Development</h2><p>Run <code>npm test</code> for the extension checks and open the package in VS Code to use the Extension Development Host. Compiler diagnostics, LSP features, formatting, refactoring and debugging remain planned.</p><p>Extension behavior follows the current grammar and may change with the language. See the <a href="https://github.com/skygenesisenterprise/edl-lang/tree/master/packages/vscode">source package</a> for the authoritative implementation.</p></Docs>

@@ -1,0 +1,4 @@
+---
+import Docs from '../../layouts/Docs.astro';
+---
+<Docs title="Toolchain"><h1>Toolchain</h1><p>The compiler pipeline is organized as source, diagnostics, tokens, lexer, AST, parser, scopes, resolution, type checking, IR, lowering, and backend.</p><ul><li><strong>Available:</strong> <code>check</code>, <code>build</code>, <code>run</code>, <code>emit-nim</code>, and migration commands.</li><li><strong>Experimental:</strong> the Nim bootstrap backend and migration reports.</li><li><strong>Planned:</strong> direct native compilation, formatter, package commands, and a polished end-user CLI.</li></ul><p>Build artifacts are kept under <code>.edlout/</code> and <code>build/edl/</code>, not in the source tree.</p></Docs>

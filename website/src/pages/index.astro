@@ -1,0 +1,30 @@
+---
+import Layout from '../layouts/Layout.astro';
+import EdlCode from '../components/EdlCode.astro';
+import hello from '../../../edl/examples/hello.edl?raw';
+---
+<Layout>
+  <section class="hero">
+    <div class="eyebrow">Engineering Definition Language</div>
+    <h1>A small language for deliberate systems work.</h1>
+    <p class="lede">EDL is an experimental, statically typed language and toolchain under active development. The project is building a clear frontend, diagnostics-first workflow, and a migration path from its Nim bootstrap.</p>
+    <div class="actions"><a class="button primary" href="/docs/getting-started">Start with EDL</a><a class="button" href="https://github.com/skygenesisenterprise/edl-lang">Read the source</a></div>
+  </section>
+  <section><h2>Project status</h2><div class="grid">
+    <div class="card"><span class="status">Available</span><h3>Compiler pipeline</h3><p>Lexing, parsing, name resolution, type checking, IR lowering, and a transitional Nim backend are implemented in <code>edl/src</code>.</p></div>
+    <div class="card"><span class="status experimental">Experimental</span><h3>Language evolution</h3><p>The syntax and toolchain contract are evolving. Examples and tests are the best guide to the current dialect.</p></div>
+    <div class="card"><span class="status planned">Planned</span><h3>Direct native backend</h3><p>The current EDL → Nim → C path is explicitly transitional; a direct backend and broader tooling remain future work.</p></div>
+  </div></section>
+  <section><h2>Why EDL</h2><div class="grid">
+    <div class="card"><h3>Simple</h3><p>A small, readable surface that is easier to inspect while the language is taking shape.</p></div>
+    <div class="card"><h3>Statically typed</h3><p>Types, resolution and diagnostics are part of the compiler pipeline rather than afterthoughts.</p></div>
+    <div class="card"><h3>Compiled</h3><p>The current backend produces native programs through a documented transitional path.</p></div>
+    <div class="card"><h3>Systems-oriented</h3><p>EDL is being built for predictable, efficient programs—not as a web-only framework.</p></div>
+  </div></section>
+  <section><h2>First program</h2><p>Save this as <code>hello.edl</code> and run it with the compiler built from this repository.</p><EdlCode code={hello} /><a href="/docs/getting-started">Follow the getting started guide →</a></section>
+  <section><h2>Ecosystem and community</h2><div class="grid">
+    <div class="card"><h3>Compiler and toolchain</h3><p>Follow the frontend, IR and bootstrap backend in the repository.</p><a href="/docs/toolchain">Explore the toolchain →</a></div>
+    <div class="card"><h3>VS Code</h3><p>Use the official extension for syntax highlighting and snippets today.</p><a href="/docs/tooling/vscode">View editor support →</a></div>
+    <div class="card"><h3>Contribute</h3><p>Implementation and specification work are developed in the open.</p><a href="https://github.com/skygenesisenterprise/edl-lang">Join on GitHub →</a></div>
+  </div></section>
+</Layout>

@@ -127,3 +127,14 @@ pkgs/
 !/packages/vscode/language-configuration.json
 !/packages/vscode/**/*.json
 !/packages/vscode/LICENSE
+
+
+
+node_modules/
+
+# Static EDL website dependencies and build output.
+/website/node_modules/
+/website/dist/
+!/website/package.json
+!/website/package-lock.json
+!/website/**/*.json

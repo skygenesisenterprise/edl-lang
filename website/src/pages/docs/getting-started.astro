@@ -1,0 +1,10 @@
+---
+import Docs from '../../layouts/Docs.astro';
+---
+<Docs title="Getting started"><h1>Getting started</h1><p>EDL currently builds from the repository's Nim bootstrap substrate. Clone the project, build the substrate, then build the EDL compiler.</p><pre><code>git clone https://github.com/skygenesisenterprise/edl-lang
+cd edl-lang
+./build_all.sh
+edl/scripts/build.sh
+build/edl/edlc run edl/examples/hello.edl</code></pre><h2>Useful commands</h2><pre><code>build/edl/edlc check edl/examples/hello.edl
+build/edl/edlc build edl/examples/hello.edl -o hello
+build/edl/edlc emit-nim edl/examples/hello.edl</code></pre><div class="callout"><strong>Honest status:</strong> <code>edl init</code>, formatting, tests as a user-facing command, package management, and documentation generation are part of the toolchain contract but are not implemented yet.</div></Docs>

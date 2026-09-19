@@ -1,0 +1,6 @@
+---
+import Docs from '../../layouts/Docs.astro';
+import greet from '../../../../edl/examples/greet.edl?raw';
+import EdlCode from '../../components/EdlCode.astro';
+---
+<Docs title="Language"><h1>Language</h1><p>EDL currently provides a compact, statically typed syntax with functions, locals, type annotations, inference, strings, and a small set of control-flow constructs.</p><EdlCode code={greet} /><h2>Design direction</h2><p>The frontend is deliberately explicit and diagnostics-first. The language model lives in <code>edl/src/edl</code>; the bootstrap dialect avoids features that cannot be mechanically migrated.</p><h2>What is not promised</h2><p>This site does not claim a stable standard, ABI, package ecosystem, or production readiness. Consult the repository tests and specification notes for the current behavior.</p></Docs>
