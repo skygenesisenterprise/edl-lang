@@ -69,7 +69,7 @@ body:
     value: |
       - Please check whether the problem still exists on the latest commit of the `devel` branch.
       - Consider writing a PR targeting the `devel` branch after filing this; see the project's
-        [contributing guide](https://github.com/skygenesisenterprise/edl-lang/blob/devel/readme.md#contributing).
+        [contributing guide](https://github.com/skygenesisenterprise/edl-lang/blob/devel/README.md#contributing).
       - The EDL compiler is written in a temporary bootstrap dialect while the EDL toolchain grows;
         see [specs/architecture.md](https://github.com/skygenesisenterprise/edl-lang/blob/devel/specs/architecture.md)
         for the roadmap. Bugs in the bootstrap substrate itself are tracked separately from EDL language bugs.

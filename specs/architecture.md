@@ -66,7 +66,7 @@ The five buckets required before any large change.
 
 ### Renamed / redefined (EDL-facing identity, no logic change)
 
-* Repository identity: `readme.md`, `copying.txt` (EDL notice added, upstream MIT
+* Repository identity: `README.md`, `copying.txt` (EDL notice added, upstream MIT
   notice preserved verbatim).
 * Toolchain commands: `koch build/test` → `edl build/test`; `nimpretty` → `edl fmt`;
   `nimsuggest` → `edl lsp`; `nimble` → `edl add/remove`.

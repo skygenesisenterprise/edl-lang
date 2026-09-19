@@ -34,7 +34,7 @@ statistics by `.gitattributes`.
 
 **Future removal strategy:** each component is removed once the corresponding EDL
 component exists and passes the tests it inherits (see `edl/`, `specs/`, and the
-"Understand before you delete" rule in the root `readme.md`). The substrate is a
+"Understand before you delete" rule in the root `README.md`). The substrate is a
 transition, not the identity of the project.
 
 ## 2. The EDL toolchain bootstrap implementation

@@ -2,6 +2,8 @@
 *
 !**/
 !*.*
+# Dot-less root files the blanket rule above would swallow.
+!/Dockerfile
 
 # ---------------------------------------------------------------
 # EDL-generated output (the EDL toolchain's own artifacts).

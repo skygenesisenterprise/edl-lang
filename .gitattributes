@@ -13,8 +13,8 @@
 # ------------------------------------------------------------------
 # Classify .edl as EDL rather than any other language. Full recognition
 # requires EDL to be registered in github-linguist/linguist (see
-# contrib/linguist/); until then this override expresses intent and keeps
-# .edl from being mislabelled.
+# integrations/github/linguist/); until then this override expresses intent
+# and keeps .edl from being mislabelled.
 *.edl linguist-language=EDL
 
 # The repository is built on a temporary Nim bootstrap substrate. Hide the

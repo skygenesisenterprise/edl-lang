@@ -1,0 +1,18 @@
+# EDL Docker build context — keep the context small and reproducible.
+
+.git
+build
+bin
+.edlout
+node_modules
+**/node_modules
+website/dist
+website/.astro
+packages/vscode/*.vsix
+csources
+csources_v1
+csources_v2
+*.o
+*.exe
+*.dll
+*.log

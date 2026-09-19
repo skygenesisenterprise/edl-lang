@@ -5,7 +5,7 @@ name: EDL release
 #
 # Tag convention:
 #   vX.Y.Z          -> this workflow (general EDL release)
-#   vX.Y.Z-vscode   -> the VS Code workflow (packages/vscode/.github...),
+#   vX.Y.Z-vscode   -> the VS Code release workflow (.github/workflows/vscode-release.yml),
 #                      intentionally NOT triggered here.
 #
 # Because the EDL compiler is currently written in the bootstrap dialect and
