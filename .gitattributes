@@ -8,7 +8,51 @@
 *.sh text eol=lf
 /config/build_config.txt text eol=lf
 
-# GitHub Linguist: classify .edl as EDL rather than any other language.
-# Full upstream recognition requires a contribution to github-linguist/linguist;
-# until then this override expresses intent and keeps .edl from being mislabelled.
+# ------------------------------------------------------------------
+# GitHub Linguist
+# ------------------------------------------------------------------
+# Classify .edl as EDL rather than any other language. Full recognition
+# requires EDL to be registered in github-linguist/linguist (see
+# contrib/linguist/); until then this override expresses intent and keeps
+# .edl from being mislabelled.
 *.edl linguist-language=EDL
+
+# The repository is built on a temporary Nim bootstrap substrate. Hide the
+# substrate from GitHub's language statistics so the repository is not
+# presented as a "Nim" project. These attributes affect only GitHub's
+# language graph / code search; they have no effect on git, CI or the build.
+# The substrate disappears entirely once `edl build` compiles the compiler
+# itself (specs/architecture.md).
+/compiler/** linguist-vendored
+/lib/** linguist-vendored
+/tools/** linguist-vendored
+/testament/** linguist-vendored
+/nimsuggest/** linguist-vendored
+/nimpretty/** linguist-vendored
+/drnim/** linguist-vendored
+/nimdoc/** linguist-vendored
+/config/** linguist-vendored
+/doc/** linguist-vendored
+/changelogs/** linguist-vendored
+/ci/** linguist-vendored
+/icons/** linguist-vendored
+/csources_v3/** linguist-vendored
+/tests/** linguist-vendored
+/tests_disabled/** linguist-vendored
+
+# Root bootstrap files.
+/koch.nim linguist-vendored
+/koch.nim.cfg linguist-vendored
+/nim.nimble linguist-vendored
+/build_all.sh linguist-vendored
+/build_all.bat linguist-vendored
+/azure-pipelines.yml linguist-vendored
+
+# Any remaining bootstrap-dialect sources (including the EDL toolchain, which
+# is currently written in the bootstrap dialect). These are transitional and
+# become .edl as the migration progresses.
+*.nim linguist-vendored
+*.nims linguist-vendored
+*.nimble* linguist-vendored
+*.nimf linguist-vendored
+*.nim.cfg linguist-vendored

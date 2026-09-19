@@ -1,0 +1,29 @@
+# EDL language definition for GitHub Linguist
+#
+# This entry is a ready-to-submit contribution to
+# https://github.com/github-linguist/linguist (file: lib/linguist/languages.yml).
+# Do NOT rely on the repository's `.gitattributes` override alone: GitHub only
+# displays languages registered in Linguist's languages.yml.
+#
+# How to submit:
+#   1. Copy this `EDL:` block into lib/linguist/languages.yml (it must be kept
+#      alphabetically sorted).
+#   2. Provide evidence of real, public `.edl` usage in the PR description.
+#      Linguist only merges a new language once it sees sufficient usage on
+#      public GitHub repositories, so publish projects using `.edl` first.
+#   3. Add a fixture under test/fixtures/ (see linguist CONTRIBUTING.md) and
+#      run the test suite.
+#
+# `language_id` must be a number unique across all languages in languages.yml.
+# Pick an unused id; 500000000+ avoids collisions with upstream ids.
+
+EDL:
+  type: programming
+  color: "#3b82f6"
+  aliases:
+    - edl
+  extensions:
+    - ".edl"
+  tm_scope: source.edl
+  ace_mode: text
+  language_id: 500000001
