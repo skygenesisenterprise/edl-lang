@@ -1,6 +1,6 @@
 {
   "name": "edl-language-support",
-  "displayName": "EDL Language Support",
+  "displayName": "EDL — Official Language Support",
   "description": "Official language support for EDL in Visual Studio Code: syntax highlighting, language configuration, snippets and examples.",
   "version": "0.1.0",
   "publisher": "skygenesisenterprise",

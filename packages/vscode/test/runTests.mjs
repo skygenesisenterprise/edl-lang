@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { readJSON } from "./framework.mjs";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const { version } = readJSON(join(root, "package.json"));
+const { name, version } = readJSON(join(root, "package.json"));
 
 function run(script) {
   const res = spawnSync(process.execPath, [script], { stdio: "inherit", cwd: root });
@@ -20,7 +20,7 @@ if (run(join(root, "test/check.mjs")) !== 0) failed = true;
 
 console.log("\n== build VSIX ==");
 const vsce = process.platform === "win32" ? "vsce.cmd" : "vsce";
-const build = spawnSync(vsce, ["package", "--out", join(root, `edl-${version}.vsix`)], {
+const build = spawnSync(vsce, ["package", "--out", join(root, `${name}-${version}.vsix`)], {
   stdio: "inherit",
   cwd: root,
 });

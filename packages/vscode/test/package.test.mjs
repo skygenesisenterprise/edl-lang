@@ -7,11 +7,11 @@ import { fileURLToPath } from "node:url";
 import { group, listZipEntries, ok, readJSON, summary } from "./framework.mjs";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const { version } = readJSON(join(root, "package.json"));
-const vsix = join(root, `edl-${version}.vsix`);
+const { name, version } = readJSON(join(root, "package.json"));
+const vsix = join(root, `${name}-${version}.vsix`);
 
 group("package generation");
-ok(existsSync(vsix), `VSIX exists (edl-${version}.vsix)`);
+ok(existsSync(vsix), `VSIX exists (${name}-${version}.vsix)`);
 if (existsSync(vsix)) {
   const size = statSync(vsix).size;
   ok(size > 0, `VSIX is non-empty (${size} bytes)`);

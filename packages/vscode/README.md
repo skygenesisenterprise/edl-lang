@@ -1,6 +1,6 @@
-# EDL Language Support
+# EDL — Official Language Support
 
-**EDL Language Support** is the official language extension for
+**EDL — Official Language Support** is the official language extension for
 [EDL](https://github.com/skygenesisenterprise/edl-lang) in Visual Studio Code.
 EDL is a statically typed, natively compiled language designed to be simple to
 learn and fast to write — readable like TypeScript, productive like Python, and
@@ -49,7 +49,7 @@ it is, install it from the `.vsix` (below).
 
 ### From a `.vsix` file
 
-1. Download or build `edl-<version>.vsix` (see
+1. Download or build `edl-language-support-<version>.vsix` (see
    [Building the VSIX](#building-the-vsix)).
 2. In VS Code open the **Extensions** view (`Ctrl+Shift+X`), click the `...`
    menu and choose **Install from VSIX...**, then select the file.
@@ -90,7 +90,7 @@ cd packages/vscode
 npm install        # install dependencies (adds @vscode/vsce)
 npm run check      # validate the manifest and required files
 npm run test       # run the test suite
-npm run package    # build the VSIX (edl-<version>.vsix)
+npm run package    # build the VSIX (edl-language-support-<version>.vsix)
 ```
 
 ## Building the VSIX
@@ -102,17 +102,17 @@ npm install
 npm run package
 ```
 
-This produces `edl-<version>.vsix` in the package directory (version comes from
+This produces `edl-language-support-<version>.vsix` in the package directory (version comes from
 `package.json`). The `.vsix` is a ZIP installable directly in VS Code:
 
 ```sh
-code --install-extension edl-0.1.0.vsix
+code --install-extension edl-language-support-0.1.0.vsix
 ```
 
 To inspect the archive contents:
 
 ```sh
-unzip -l edl-0.1.0.vsix
+unzip -l edl-language-support-0.1.0.vsix
 ```
 
 ## Roadmap
