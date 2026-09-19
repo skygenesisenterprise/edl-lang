@@ -1,0 +1,168 @@
+## End-to-end tests.
+##
+## These are the tests that matter most: they write a real EDL program, run the
+## whole pipeline on it, execute the resulting native binary, and compare its
+## output. A pass here means EDL source genuinely became a running program.
+##
+## The generated sources and binaries go to build/edl/e2e/, which is ignored.
+##
+## If EDL_BIN is set (edl/scripts/test.sh sets it), the compiler *binary* is
+## exercised as well, so the command line interface is covered too.
+
+import std/os
+import std/osproc
+
+import edl/driver
+import edl/diagnostics
+
+import ../framework
+
+const outRoot = "build/edl/e2e"
+
+proc writeProgram(name, src: string): string =
+  createDir(outRoot)
+  result = outRoot / (name & ".edl")
+  writeFile(result, src)
+
+proc buildProgram(name, src: string): CompileResult =
+  let srcPath = writeProgram(name, src)
+  var opts = CompileOptions()
+  opts.inputPath = srcPath
+  opts.outDir = outRoot
+  result = compileFile(opts)
+
+proc run*() =
+  beginSuite("compiler")
+
+  # ---- the hello world program, all the way to a running binary ----
+  block:
+    let r = buildProgram("hello", "fn main() { print(\"Hello World\") }")
+    check(r.ok, "hello world compiles")
+    check(not r.diags.hasErrors(), "hello world produces no diagnostics")
+    if r.ok:
+      let run = execCmdEx(r.exePath)
+      checkEqInt(run.exitCode, 0, "the built program exits successfully")
+      checkEqStr(run.output, "Hello World\n", "the built program prints Hello World")
+
+  # ---- functions, locals, string concatenation ----
+  block:
+    let r = buildProgram("greet",
+      "fn greet(name: string) -> string { return \"Hello \" + name }\n" &
+      "fn main() { let name = \"Liam\" print(greet(name)) }")
+    check(r.ok, "a program with a function compiles")
+    if r.ok:
+      let run = execCmdEx(r.exePath)
+      checkEqStr(run.output, "Hello Liam\n", "the function's result is printed")
+
+  # ---- loops, mutable locals, arithmetic ----
+  block:
+    let r = buildProgram("loop",
+      "fn sumTo(limit: i32) -> i32 {\n" &
+      "    var total: i32 = 0\n" &
+      "    var i: i32 = 1\n" &
+      "    while i <= limit { total = total + i i = i + 1 }\n" &
+      "    return total\n" &
+      "}\n" &
+      "fn main() { print(sumTo(10)) }")
+    check(r.ok, "a program with a while loop compiles")
+    if r.ok:
+      let run = execCmdEx(r.exePath)
+      checkEqStr(run.output, "55\n", "the loop accumulates the right value")
+
+  # ---- conditionals ----
+  block:
+    let r = buildProgram("branch",
+      "fn classify(v: i32) -> string {\n" &
+      "    if v > 0 { return \"positive\" }\n" &
+      "    else if v < 0 { return \"negative\" }\n" &
+      "    else { return \"zero\" }\n" &
+      "}\n" &
+      "fn main() { print(classify(7)) print(classify(0)) print(classify(-3)) }")
+    check(r.ok, "a program with if/else if/else compiles")
+    if r.ok:
+      let run = execCmdEx(r.exePath)
+      checkEqStr(run.output, "positive\nzero\nnegative\n",
+                 "each branch is reached correctly")
+
+  # ---- the scalar types ----
+  block:
+    let r = buildProgram("scalars",
+      "fn main() {\n" &
+      "    let pi: f64 = 3.14\n" &
+      "    print(pi)\n" &
+      "    let label: char = 'E'\n" &
+      "    print(label)\n" &
+      "    let ready: bool = true\n" &
+      "    print(ready)\n" &
+      "    let small: u8 = 200\n" &
+      "    print(small)\n" &
+      "}")
+    check(r.ok, "a program using several scalar types compiles")
+    if r.ok:
+      let run = execCmdEx(r.exePath)
+      checkEqStr(run.output, "3.14\nE\ntrue\n200\n",
+                 "floats, chars, bools and sized integers print correctly")
+
+  # ---- artifacts and intermediate representations ----
+  block:
+    var opts = CompileOptions()
+    opts.inputPath = writeProgram("artifacts", "fn main() { print(\"hi\") }")
+    opts.outDir = outRoot
+    opts.emitOnly = true
+    opts.dumpAst = true
+    opts.dumpIr = true
+    let r = compileFile(opts)
+    check(r.ok, "emit-only stops after writing the backend source")
+    check(r.generatedPath.len > 0 and fileExists(r.generatedPath),
+          "the backend source is written to disk")
+    check(r.generatedSource.len > 0, "the backend source was produced")
+    checkContains(r.generatedSource, "echo \"hi\"",
+                  "print lowers to the backend's output primitive")
+    check(r.astDump.len > 0, "the syntax tree can be dumped")
+    check(r.irDump.len > 0, "the intermediate representation can be dumped")
+    checkContains(r.irDump, "builtin print", "the IR records the print builtin")
+
+  # ---- failures ----
+  block:
+    let r = buildProgram("nomain", "fn other() { print(\"no entry point\") }")
+    check(not r.ok, "a program without main is not built")
+    check(r.diags.hasCode(edlResolveNoMain), "a missing main is reported")
+    checkEqStr(r.exePath, "", "no executable is produced")
+
+  block:
+    let r = buildProgram("badtype", "fn main() { let x: i32 = \"s\" }")
+    check(not r.ok, "a type error stops the build")
+    check(r.diags.hasCode(edlTypeNotAssignable), "the type error is reported")
+
+  block:
+    let r = buildProgram("badsyntax", "fn main( { print(1) }")
+    check(not r.ok, "a syntax error stops the build")
+    check(r.diags.hasErrors(), "the syntax error is reported")
+
+  block:
+    var opts = CompileOptions()
+    opts.inputPath = outRoot / "does-not-exist.edl"
+    opts.outDir = outRoot
+    let r = compileFile(opts)
+    check(not r.ok, "a missing input file fails cleanly")
+    check(r.diags.hasCode(edlDrvFileNotFound), "the missing file is reported")
+
+  # ---- the compiler binary itself, when the test script provides it ----
+  block:
+    let edlc = getEnv("EDL_BIN")
+    if edlc.len > 0:
+      let good = writeProgram("cli_good", "fn main() { print(\"cli\") }")
+      let goodRun = execCmdEx(edlc & " run " & good)
+      checkEqInt(goodRun.exitCode, 0, "the compiler binary runs a program")
+      checkEqStr(goodRun.output, "cli\n", "the compiler binary's program prints")
+
+      let bad = writeProgram("cli_bad", "fn main() { let x: i32 = \"s\" }")
+      let badRun = execCmdEx(edlc & " check " & bad)
+      checkEqInt(badRun.exitCode, 1, "a type error exits with status 1")
+      checkContains(badRun.output, "EDL0403", "the diagnostic code is printed")
+      checkContains(badRun.output, "help:", "a diagnostic carries a help line")
+
+      let missing = execCmdEx(edlc & " frobnicate")
+      checkEqInt(missing.exitCode, 2, "an unknown command exits with status 2")
+    else:
+      check(true, "EDL_BIN not set: skipping the compiler-binary tests")

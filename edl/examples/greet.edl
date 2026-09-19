@@ -1,0 +1,13 @@
+// Functions, locals, inference and string concatenation.
+//
+//   edl run edl/examples/greet.edl
+
+fn greet(name: string) -> string {
+    return "Hello " + name
+}
+
+fn main() {
+    let name = "Liam"
+    let message = greet(name)
+    print(message)
+}

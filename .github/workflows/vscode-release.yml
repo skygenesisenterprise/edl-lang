@@ -1,0 +1,93 @@
+name: VS Code extension release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build VSIX and publish GitHub release
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/vscode
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: packages/vscode/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate manifest
+        run: npm run check
+
+      - name: Run tests
+        run: npm test
+
+      - name: Package VSIX
+        run: npm run package
+
+      - name: Create GitHub release with VSIX
+        uses: softprops/action-gh-release@v2
+        with:
+          files: packages/vscode/edl-*.vsix
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Marketplace publishing is intentionally NOT enabled.
+  #
+  # Until the official VS Code Marketplace publisher for
+  # `skygenesisenterprise/edl-lang` is created and its identity/token is
+  # provisioned as a GitHub secret, nothing is published. This keeps the CI and
+  # the Marketplace release strictly separated and prevents PRs from forks (and
+  # anyone without the secret) from ever touching the Marketplace.
+  #
+  # To enable later, uncomment the job and the step below, and:
+  #   1. Register the publisher on the Marketplace and confirm `package.json`
+  #      `publisher` matches the registered id.
+  #   2. Use the modern, short-lived PAT recommended by Microsoft for
+  #      automated publishing (do NOT bake a long-lived secret into the repo).
+  #   3. Store it as a repository secret, e.g. `VSCODE_MARKETPLACE_TOKEN`,
+  #      scoped so it is only reachable from the protected release workflow
+  #      and never from `pull_request`/fork contexts.
+  #   4. Add `needs: release` and remove `if: false`.
+  #
+  # publish:
+  #   name: Publish to VS Code Marketplace
+  #   needs: release
+  #   runs-on: ubuntu-latest
+  #   if: false
+  #   environment: vscode-marketplace
+  #   permissions:
+  #     contents: read
+  #   defaults:
+  #     run:
+  #       working-directory: packages/vscode
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v4
+  #     - name: Setup Node.js
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: 20
+  #         cache: npm
+  #         cache-dependency-path: packages/vscode/package-lock.json
+  #     - name: Install dependencies
+  #       run: npm ci
+  #     - name: Publish
+  #       run: npx @vscode/vsce publish --pat "${{ secrets.VSCODE_MARKETPLACE_TOKEN }}"
+  #       env:
+  #         VSCE_PAT: ${{ secrets.VSCODE_MARKETPLACE_TOKEN }}

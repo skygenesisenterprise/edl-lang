@@ -1,0 +1,8 @@
+// The smallest EDL program.
+//
+//   fn main is the entry point
+//   print is a temporary compiler builtin until the standard library exists
+
+fn main() {
+    print("Hello World")
+}

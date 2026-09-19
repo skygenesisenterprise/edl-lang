@@ -1,0 +1,200 @@
+## The EDL compilation driver.
+##
+## Runs the pipeline in order and stops as soon as a stage has reported an error:
+##
+##   read -> lex -> parse -> resolve -> type check -> lower -> emit -> build
+##
+## The driver is the only part of the compiler that touches the file system and
+## the only one that knows where build artifacts go. They never land in the
+## source tree: the default output directory is `.edlout/`, which is hidden and
+## therefore ignored by version control.
+##
+## Bootstrap dialect: see specs/decisions/ADR-0001.
+
+import std/os
+import std/osproc
+
+import ./source
+import ./lexer
+import ./parser
+import ./ast
+import ./diagnostics
+import ./types
+import ./resolve
+import ./typecheck
+import ./ir
+import ./lowering
+import ./backends/backend
+
+const
+  defaultOutDir* = ".edlout"
+  defaultBackend* = bkNimBootstrap
+
+type
+  CompileOptions* = object
+    inputPath*: string
+    outputPath*: string   ## empty: <outDir>/<module name>
+    outDir*: string       ## empty: `.edlout`
+    nimExe*: string       ## empty: EDL_NIM, else bin/nim, else nim from PATH
+    emitOnly*: bool       ## stop after writing the backend source
+    dumpAst*: bool
+    dumpIr*: bool
+
+  CompileResult* = object
+    ok*: bool
+    diags*: Diagnostics
+    astDump*: string
+    irDump*: string
+    generatedSource*: string
+    generatedPath*: string
+    exePath*: string
+    toolOutput*: string   ## output of the bootstrap compiler, when it ran
+
+proc noSpan(): SourceSpan =
+  result = SourceSpan()
+
+proc moduleNameFromPath*(path: string): string =
+  ## Basename without extension, sanitised into an identifier.
+  var start = 0
+  var i = 0
+  while i < path.len:
+    if path[i] == '/' or path[i] == '\\':
+      start = i + 1
+    inc i
+  var stop = path.len
+  i = start
+  while i < path.len:
+    if path[i] == '.':
+      stop = i
+      break
+    inc i
+  i = start
+  while i < stop:
+    let ch = path[i]
+    if (ch >= 'a' and ch <= 'z') or (ch >= 'A' and ch <= 'Z') or
+       (ch >= '0' and ch <= '9') or ch == '_':
+      result.add(ch)
+    else:
+      result.add('_')
+    inc i
+  if result.len == 0:
+    result = "module"
+
+proc findNimExe*(explicit: string): string =
+  ## Where the bootstrap compiler lives, in order of precedence:
+  ## an explicit path, `EDL_NIM`, `bin/nim` in the working directory, PATH.
+  if explicit.len > 0:
+    return explicit
+  let fromEnv = getEnv("EDL_NIM")
+  if fromEnv.len > 0:
+    return fromEnv
+  if fileExists("bin/nim"):
+    return "bin/nim"
+  result = "nim"
+
+proc runProgram*(exePath, workDir: string): int =
+  ## Runs a built program, letting it own the terminal.
+  try:
+    let process = startProcess(exePath, workingDir = workDir, args = @[],
+                               options = {poParentStreams})
+    result = process.waitForExit()
+    process.close()
+  except OSError:
+    result = 127
+
+proc compileFile*(opts: CompileOptions): CompileResult =
+  ## Compiles one EDL source file. Never raises: every failure becomes a
+  ## diagnostic, so callers have a single error path to handle.
+  result = CompileResult(ok: false, diags: newDiagnostics(), astDump: "",
+                         irDump: "", generatedSource: "", generatedPath: "",
+                         exePath: "", toolOutput: "")
+
+  # ---- read ----
+  var text = ""
+  try:
+    text = readFile(opts.inputPath)
+  except IOError, OSError:
+    discard result.diags.reportError(edlDrvFileNotFound,
+      "cannot read '" & opts.inputPath & "'", noSpan(),
+      "check that the file exists and is readable")
+    return
+
+  let file = newSourceFile(opts.inputPath, text)
+
+  # ---- lex and parse ----
+  let toks = tokenize(file, result.diags)
+  let parsed = parseModule(file, toks, result.diags)
+  if opts.dumpAst:
+    result.astDump = dumpTree(parsed.module)
+  if result.diags.hasErrors():
+    return
+
+  # ---- name resolution ----
+  let bindings = resolveModule(parsed.module, parsed.nodeCount, result.diags)
+  if result.diags.hasErrors():
+    return
+
+  # ---- type checking ----
+  let typeTable = newTypeTable()
+  let checked = typeCheck(parsed.module, parsed.nodeCount, bindings,
+                          typeTable, result.diags)
+  if result.diags.hasErrors():
+    return
+
+  # A program that is built must have an entry point. Checking a library does
+  # not require one.
+  if not opts.emitOnly and hasMain(bindings) == nil:
+    discard result.diags.reportError(edlResolveNoMain,
+      "this program has no 'main' function", parsed.module.span,
+      "add 'fn main() { ... }', or use 'edl check' to check a library")
+    return
+
+  # ---- lower and emit ----
+  let moduleName = moduleNameFromPath(opts.inputPath)
+  let irModule = lowerModule(parsed.module, bindings, checked, typeTable,
+                             moduleName, opts.inputPath)
+  if opts.dumpIr:
+    result.irDump = dumpIrModule(irModule, typeTable)
+  result.generatedSource = emitModule(defaultBackend, irModule, typeTable)
+
+  var outDir = opts.outDir
+  if outDir.len == 0:
+    outDir = defaultOutDir
+  try:
+    createDir(outDir)
+  except OSError:
+    discard result.diags.reportError(edlDrvEmitFailed,
+      "cannot create the output directory '" & outDir & "'", noSpan(), "")
+    return
+
+  let extension = backendSourceExtension(defaultBackend)
+  let generatedPath = outDir / moduleName & "." & extension
+  try:
+    writeFile(generatedPath, result.generatedSource)
+  except IOError, OSError:
+    discard result.diags.reportError(edlDrvEmitFailed,
+      "cannot write '" & generatedPath & "'", noSpan(), "")
+    return
+  result.generatedPath = generatedPath
+
+  if opts.emitOnly:
+    result.ok = true
+    return
+
+  # ---- build ----
+  var exePath = opts.outputPath
+  if exePath.len == 0:
+    exePath = outDir / moduleName
+  let nimExe = findNimExe(opts.nimExe)
+  let cacheDir = outDir / "nimcache"
+  var toolOutput = ""
+  let built = compileOutput(defaultBackend, nimExe, generatedPath, exePath,
+                            "", cacheDir, toolOutput)
+  result.toolOutput = toolOutput
+  if built:
+    result.exePath = exePath
+    result.ok = true
+  else:
+    discard result.diags.reportError(edlDrvBackendFailed,
+      "the bootstrap backend failed to build the program", noSpan(),
+      "the generated source is kept at " & generatedPath)

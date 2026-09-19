@@ -1,0 +1,28 @@
+## EDL test suite runner.
+##
+## Every category exposes `proc run*()`. Categories are added here as they are
+## written, so the suite grows with the language:
+##
+##   lexer/ parser/ types/ generics/ modules/ errors/ memory/ concurrency/
+##   ffi/ compiler/ migrate/ runtime/ stdlib/ web/ database/
+##
+## `edl/scripts/test.sh` compiles and runs this file. End-to-end tests receive
+## the path of the compiler under test through the EDL_BIN environment variable.
+
+import framework
+import lexer/t_lexer
+import parser/t_parser
+import types/t_types
+import compiler/t_hello
+import migrate/t_migrate
+
+proc main() =
+  echo "EDL test suite"
+  t_lexer.run()
+  t_parser.run()
+  t_types.run()
+  t_hello.run()
+  t_migrate.run()
+  quit(report())
+
+main()

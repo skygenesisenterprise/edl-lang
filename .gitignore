@@ -114,3 +114,16 @@ nimdoc.out.css
 !/nimdoc/testproject/expected/*
 pkgs/
 /compiler/compiler/
+
+# VS Code extension package (whitelist override: this .gitignore starts with
+# `*` and re-includes dotted files via `!*.*`, so dependency folders and built
+# archives must be explicitly ignored again).
+/packages/vscode/node_modules/
+/packages/vscode/*.vsix
+
+# ...but the package's own sources must be trackable despite the global
+# `*.json` and `*` rules above.
+!/packages/vscode/package.json
+!/packages/vscode/language-configuration.json
+!/packages/vscode/**/*.json
+!/packages/vscode/LICENSE

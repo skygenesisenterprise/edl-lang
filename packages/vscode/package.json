@@ -1,0 +1,73 @@
+{
+  "name": "edl-language-support",
+  "displayName": "EDL Language Support",
+  "description": "Official language support for EDL in Visual Studio Code: syntax highlighting, language configuration, snippets and examples.",
+  "version": "0.1.0",
+  "publisher": "skygenesisenterprise",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "keywords": [
+    "EDL",
+    "programming language",
+    "systems programming",
+    "backend",
+    "web"
+  ],
+  "icon": "images/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/skygenesisenterprise/edl-lang.git"
+  },
+  "bugs": {
+    "url": "https://github.com/skygenesisenterprise/edl-lang/issues"
+  },
+  "homepage": "https://github.com/skygenesisenterprise/edl-lang",
+  "qna": "https://github.com/skygenesisenterprise/edl-lang/discussions",
+  "galleryBanner": {
+    "color": "#1e1e2e",
+    "theme": "dark"
+  },
+  "contributes": {
+    "languages": [
+      {
+        "id": "edl",
+        "aliases": [
+          "EDL",
+          "edl"
+        ],
+        "extensions": [
+          ".edl"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "edl",
+        "scopeName": "source.edl",
+        "path": "./syntaxes/edl.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "edl",
+        "path": "./snippets/edl.json"
+      }
+    ]
+  },
+  "scripts": {
+    "check": "node test/check.mjs",
+    "test": "node test/runTests.mjs",
+    "package": "node scripts/package.mjs",
+    "publish:prep": "node scripts/package.mjs",
+    "vscode:prepublish": "npm run check"
+  },
+  "devDependencies": {
+    "@vscode/vsce": "^3.2.2"
+  }
+}

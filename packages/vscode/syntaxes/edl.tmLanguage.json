@@ -1,0 +1,169 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "EDL",
+  "scopeName": "source.edl",
+  "fileTypes": ["edl"],
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#strings" },
+    { "include": "#chars" },
+    { "include": "#numbers" },
+    { "include": "#keywords" },
+    { "include": "#types" },
+    { "include": "#builtin" },
+    { "include": "#operators" },
+    { "include": "#function-declaration" },
+    { "include": "#type-declaration" },
+    { "include": "#identifiers" },
+    { "include": "#punctuation" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "begin": "//",
+          "end": "$",
+          "name": "comment.line.double-slash.edl"
+        },
+        {
+          "begin": "/\\*",
+          "end": "\\*/",
+          "name": "comment.block.edl",
+          "beginCaptures": { "0": { "name": "punctuation.definition.comment.edl" } },
+          "endCaptures": { "0": { "name": "punctuation.definition.comment.edl" } },
+          "patterns": [{ "include": "#comments" }]
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "begin": "\"",
+          "end": "\"",
+          "name": "string.quoted.double.edl",
+          "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.edl" } },
+          "endCaptures": { "0": { "name": "punctuation.definition.string.end.edl" } },
+          "patterns": [{ "include": "#string-escapes" }]
+        }
+      ]
+    },
+    "string-escapes": {
+      "patterns": [
+        {
+          "match": "\\\\(n|r|t|0|\\\\|\\\"|')",
+          "name": "constant.character.escape.edl"
+        }
+      ]
+    },
+    "chars": {
+      "patterns": [
+        {
+          "begin": "'",
+          "end": "'",
+          "name": "string.quoted.single.edl",
+          "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.edl" } },
+          "endCaptures": { "0": { "name": "punctuation.definition.string.end.edl" } },
+          "patterns": [{ "include": "#string-escapes" }]
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "match": "\\b0[xX][0-9a-fA-F_]+\\b",
+          "name": "constant.numeric.integer.hexadecimal.edl"
+        },
+        {
+          "match": "\\b0[bB][01_]+\\b",
+          "name": "constant.numeric.integer.binary.edl"
+        },
+        {
+          "match": "\\b[0-9][0-9_]*[eE][+-]?[0-9_]+\\b|\\b[0-9][0-9_]*\\.[0-9_]*([eE][+-]?[0-9_]+)?\\b",
+          "name": "constant.numeric.float.edl"
+        },
+        {
+          "match": "\\b[0-9][0-9_]*\\b",
+          "name": "constant.numeric.integer.decimal.edl"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "match": "\\b(fn|let|var|const|struct|enum|import|from|if|else|while|for|in|return|true|false|nil|break|continue|and|or|not|unsafe)\\b",
+          "name": "keyword.control.edl"
+        }
+      ]
+    },
+    "types": {
+      "patterns": [
+        {
+          "match": "\\b(bool|i8|i16|i32|i64|i128|u8|u16|u32|u64|u128|f32|f64|char|string|bytes|isize|usize|void)\\b",
+          "name": "storage.type.edl"
+        }
+      ]
+    },
+    "builtin": {
+      "patterns": [
+        {
+          "match": "\\bprint\\b",
+          "name": "support.function.builtin.edl"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "match": "==|!=|<=|>=|->|=|<|>|\\+|-|\\*|/|%|\\?",
+          "name": "keyword.operator.edl"
+        }
+      ]
+    },
+    "function-declaration": {
+      "patterns": [
+        {
+          "begin": "\\b(fn)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "beginCaptures": {
+            "1": { "name": "keyword.control.edl" },
+            "2": { "name": "entity.name.function.edl" }
+          },
+          "end": "\\{",
+          "patterns": [
+            { "include": "#types" },
+            { "include": "#comments" },
+            { "include": "#keywords" }
+          ]
+        }
+      ]
+    },
+    "type-declaration": {
+      "patterns": [
+        {
+          "begin": "\\b(struct|enum)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "beginCaptures": {
+            "1": { "name": "keyword.control.edl" },
+            "2": { "name": "entity.name.type.edl" }
+          },
+          "end": "\\{",
+          "patterns": [{ "include": "#comments" }]
+        }
+      ]
+    },
+    "identifiers": {
+      "patterns": [
+        {
+          "match": "\\b[A-Za-z_][A-Za-z0-9_]*\\b",
+          "name": "variable.other.edl"
+        }
+      ]
+    },
+    "punctuation": {
+      "patterns": [
+        {
+          "match": "\\(|\\)|\\{|\\}|\\[|\\]|,|:|\\.|;",
+          "name": "punctuation.separator.edl"
+        }
+      ]
+    }
+  }
+}

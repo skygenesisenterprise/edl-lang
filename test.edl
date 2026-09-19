@@ -1,0 +1,49 @@
+// test.edl -- an EDL program.
+//
+//   edl run test.edl
+//   edl check test.edl
+//   edl emit-nim test.edl --print
+
+fn greet(name: string) -> string {
+    return "Hello " + name
+}
+
+fn sumTo(limit: i32) -> i32 {
+    var total: i32 = 0
+    var i: i32 = 1
+    while i <= limit {
+        total = total + i
+        i = i + 1
+    }
+    return total
+}
+
+fn classify(value: i32) -> string {
+    if value > 0 {
+        return "positive"
+    } else if value < 0 {
+        return "negative"
+    } else {
+        return "zero"
+    }
+}
+
+fn main() {
+    let name = "Liam"
+    print(greet(name))
+
+    let total = sumTo(10)
+    print(total)
+    print(classify(total))
+
+    let pi: f64 = 3.14
+    print(pi)
+
+    let label: char = 'E'
+    print(label)
+
+    let ready: bool = true
+    if ready {
+        print("edl works")
+    }
+}

@@ -1,0 +1,7 @@
+// The smallest EDL program.
+//
+//   edl run edl/examples/hello.edl
+
+fn main() {
+    print("Hello World")
+}
