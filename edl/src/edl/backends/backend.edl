@@ -13,29 +13,34 @@
 
 import ../ir
 import ../types
+import ../interp
 import ./bootstrapbackend
 
 type
   BackendKind* = enum
     bkError
     bkBootstrap   ## EDL IR -> bootstrap source -> C -> native (transitional)
+    bkInterp      ## EDL IR -> tree-walking interpreter (no external compiler)
 
 proc backendName*(kind: BackendKind): string =
   case kind
   of bkError: result = "<error>"
   of bkBootstrap: result = "bootstrap"
+  of bkInterp: result = "interp"
 
 proc backendSourceExtension*(kind: BackendKind): string =
   ## Extension of the file `emitModule` produces.
   case kind
   of bkError: result = ""
   of bkBootstrap: result = "nim"
+  of bkInterp: result = ""
 
 proc emitModule*(kind: BackendKind, m: IrModule, t: TypeTable): string =
   ## Renders an IR module as source in this backend's language.
   case kind
   of bkError: result = ""
   of bkBootstrap: result = emitNimModule(m, t)
+  of bkInterp: result = ""
 
 proc compileOutput*(kind: BackendKind, compilerExe, srcPath, outPath, workDir,
                     cacheDir: string, output: var string): bool =
@@ -45,3 +50,12 @@ proc compileOutput*(kind: BackendKind, compilerExe, srcPath, outPath, workDir,
   of bkBootstrap:
     result = compileNimSource(compilerExe, srcPath, outPath, workDir, cacheDir,
                               output)
+  of bkInterp:
+    result = false
+
+proc runInterpreted*(kind: BackendKind, m: IrModule, t: TypeTable): int =
+  ## Runs an IR module directly, without an external compiler. Returns a
+  ## process-style exit code; `-1` when this backend cannot interpret.
+  case kind
+  of bkInterp: result = interpRunModule(m, t)
+  of bkError, bkBootstrap: result = -1

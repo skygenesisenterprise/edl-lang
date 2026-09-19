@@ -21,11 +21,16 @@ EDL source (.edl)
    Lowering       edl/src/edl/lowering.edl     typed AST -> IR
       │
       ▼
-   Backend        edl/src/edl/backends/*.edl   IR -> source
+   Backend        edl/src/edl/backends/*.edl   IR -> source (bootstrap/native)
       │
       ▼
-  Native binary
+  Native binary   (edl build)      or      tree-walk the IR directly (edl run)
 ```
+
+`edl run` is a tree-walking interpreter over the IR (`edl/src/edl/interp.edl`):
+it executes a program in-process with no EDL-to-bootstrap translation and no
+external compiler. `edl build` still emits through the transitional bootstrap
+backend and links a native binary; `emit-nim` shows that output.
 
 Orchestration is `edl/src/edl/driver.edl`; the command line is `edl/src/edlc.edl`.
 

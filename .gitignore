@@ -23,6 +23,11 @@ nimcache*/
 rnimcache*/
 dnimcache*/
 
+# Transient .nim siblings generated from the .edl sources by
+# scripts/mirror-edl.sh so the Nim substrate can compile them. Build artifacts,
+# never committed: the repository source is exclusively .edl.
+*.nim
+
 *.o
 !/icons/*.o
 *.obj

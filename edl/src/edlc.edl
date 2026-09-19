@@ -107,6 +107,8 @@ proc runCompileCommand(command: string, args: seq[string]): int =
     opts.emitOnly = true
   if command == "emit-ast":
     opts.dumpAst = true
+  if command == "run":
+    opts.interpret = true
 
   let r = compileFile(opts)
 
@@ -136,7 +138,7 @@ proc runCompileCommand(command: string, args: seq[string]): int =
       1
 
   else:
-    # build, and run
+    # run (interpreted) or build (native)
     if opts.dumpIr:
       echo r.irDump
     showDiagnostics(r.diags)
@@ -145,7 +147,7 @@ proc runCompileCommand(command: string, args: seq[string]): int =
         echo r.toolOutput
       1
     elif command == "run":
-      runProgram(r.exePath, "")
+      r.exitCode
     else:
       echo r.exePath
       0

@@ -1,0 +1,56 @@
+// EDL syntax colorization demo
+// Mix TypeScript (fn, let, struct, types, ->) and Python (and/or/not/in, print).
+
+// A function declaration: `fn` keyword, yellow name, cyan params, blue types.
+fn greet(name: string, times: i32) -> string {
+    var result: string = ""
+    var i: i32 = 0
+    while i < times {
+        result = result + "Hello " + name
+        i = i + 1
+    }
+    return result
+}
+
+// A struct declaration: fields carry their types.
+struct User {
+    id: u64
+    name: string
+    active: bool
+}
+
+// An enum declaration.
+enum Color {
+    Red
+    Green
+    Blue
+}
+
+// The entry point: locals, inference, Python-style logical keywords,
+// the `print` builtin, property access and enum member access.
+fn main() {
+    let ready: bool = true
+    let count: i32 = 42
+    const pi: f64 = 3.14
+    let label: char = 'E'
+
+    if ready and count > 0 {
+        print("ready")
+    } else if not ready {
+        print("no")
+    }
+
+    let user = User { id: 1, name: "Liam", active: true }
+    print(user.name)
+    print(greet(user.name, 2))
+
+    let color = Color.Red
+    print(color)
+
+    for item in [1, 2, 3] {
+        print(item)
+        if item == 3 {
+            break
+        }
+    }
+}

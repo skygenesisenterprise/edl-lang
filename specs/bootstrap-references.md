@@ -60,7 +60,7 @@ dialect disappears as the migration progresses. This is EDL-owned code that
 | Path | What it is | Why it remains |
 |------|-----------|----------------|
 | `edl/src/edl/backends/backend.edl` | Backend interface (the replacement seam). | Kept so a native backend can replace the bootstrap one without touching the frontend or IR. |
-| `edl/src/edl/backends/bootstrapbackend.edl` | The transitional backend: EDL IR → bootstrap source → C → native. | Lets EDL programs run end to end before the native backend exists. **Temporary by design.** |
+| `edl/src/edl/backends/bootstrapbackend.edl` | The transitional backend: EDL IR → bootstrap source → C → native (`edl build`). | Produces a standalone native binary. `edl run` no longer needs it: `edl/src/edl/interp.edl` executes the IR directly, with no external compiler. **Temporary by design.** |
 
 **Future removal strategy:** replace the single backend implementation behind
 `backend.edl` with a direct native (and later WASM) backend; the bootstrap backend

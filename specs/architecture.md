@@ -128,7 +128,8 @@ Name resolution ───── bindings ──────┤   resolve.edl, sc
    Lowering ─────────── EDL IR ──────┘   ir.edl, lowering.edl
       │
       ▼
-  Backend interface ──┬── bootstrap backend (transitional)
+  Backend interface ──┬── interpreter (edl run, direct, no external compiler)
+                      ├── bootstrap backend (transitional, edl build)
                       ├── Native backend (target)
                       └── WASM backend (future)
 ```

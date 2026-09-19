@@ -37,6 +37,7 @@ type
     outDir*: string       ## empty: `.edlout`
     bootstrapExe*: string ## empty: EDL_BOOTSTRAP, else bin/nim, else nim from PATH
     emitOnly*: bool       ## stop after writing the backend source
+    interpret*: bool      ## run the IR directly, no external compiler
     dumpAst*: bool
     dumpIr*: bool
 
@@ -49,6 +50,9 @@ type
     generatedPath*: string
     exePath*: string
     toolOutput*: string   ## output of the bootstrap compiler, when it ran
+    irModule*: IrModule   ## set when the module was lowered
+    typeTable*: TypeTable
+    exitCode*: int        ## set when the module was interpreted
 
 proc noSpan(): SourceSpan =
   result = SourceSpan()
@@ -153,8 +157,17 @@ proc compileFile*(opts: CompileOptions): CompileResult =
   let moduleName = moduleNameFromPath(opts.inputPath)
   let irModule = lowerModule(parsed.module, bindings, checked, typeTable,
                              moduleName, opts.inputPath)
+  result.irModule = irModule
+  result.typeTable = typeTable
   if opts.dumpIr:
     result.irDump = dumpIrModule(irModule, typeTable)
+
+  # ---- interpret (direct execution, no external compiler) ----
+  if opts.interpret:
+    result.exitCode = runInterpreted(bkInterp, irModule, typeTable)
+    result.ok = true
+    return
+
   result.generatedSource = emitModule(defaultBackend, irModule, typeTable)
 
   var outDir = opts.outDir

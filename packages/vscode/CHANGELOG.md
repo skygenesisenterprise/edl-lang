@@ -11,6 +11,22 @@ single source of truth.
 
 ## [Unreleased]
 
+### Changed
+
+- Reworked the syntax highlighting grammar around a **TypeScript/Python-mixed
+  palette** matching the default VS Code theme (Dark+): `entity.name.type`
+  (turquoise) for custom types and `storage.type` (blue) for primitives, Python
+  logical keywords (`and`/`or`/`not`/`in`) as `keyword.operator.logical`,
+  builtins (`print`, `echo`, `defined`, `quit`, `sleep`) as
+  `support.function.builtin`, `true`/`false`/`nil` as `constant.language`,
+  parameters as `variable.parameter` and field access as
+  `variable.other.property`.
+- Extended the grammar to the **bootstrap-dialect surface** found in substrate
+  `.edl` files: `proc`/`method`/`iterator` declarations, `when`/`defined`,
+  `try`/`except`/`raise`/`discard`, `result`, Nim primitive types, `#` comments,
+  pragmas `{. ... .}` and numeric type suffixes (`'i32`, `'u64`, ...). Every
+  `.edl` file is now colorized.
+
 ## [0.1.0] - 2026-09-19
 
 First release. Provides official, non-LSP language support for EDL in Visual

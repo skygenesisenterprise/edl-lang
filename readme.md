@@ -70,6 +70,12 @@ edl/scripts/build.sh    # builds the EDL compiler into build/edl/edlc
 build/edl/edlc run test.edl
 ```
 
+`build/edl/edlc run` is a **direct interpreter**: it lowers EDL to the typed IR
+and executes it in-process. It does not generate Nim and does not invoke the
+bootstrap compiler, so running a program needs no substrate. (`build` still
+produces a native binary through the transitional bootstrap backend; `emit-nim`
+shows that backend's output.)
+
 `test.edl` at the repository root is a real program: functions, type inference,
 a `while` loop, `if`/`else if`/`else`, string concatenation and every scalar
 type. It prints:
@@ -171,10 +177,11 @@ registered in [`specs/bootstrap-references.md`](specs/bootstrap-references.md).
 | Name resolution | **working** — `scopes.edl`, `resolve.edl` |
 | Type system and type checking | **working** — `types.edl`, `typecheck.edl` |
 | EDL IR and lowering | **working** — `ir.edl`, `lowering.edl` |
-| Backend | **working, transitional** — EDL lowers to Nim, then C, then a native binary |
-| Programs that compile and run | **working** — see [Try it now](#try-it-now) |
+| Interpreter | **working** — `edl run` executes the IR directly, no external compiler (`interp.edl`) |
+| Native backend | **working, transitional** — `edl build` lowers to Nim, then C, then a native binary |
+| Programs that run | **working** — see [Try it now](#try-it-now) |
 | Toolchain | **partial** — `check`, `build`, `run`, `emit-nim`, `emit-ast`, `migrate` work; `init`, `fmt`, `test`, `doc`, `add`, `remove` are declared but not implemented |
-| Test suite | **working** — 325 checks, `edl/scripts/test.sh` |
+| Test suite | **working** — 330 checks, `edl/scripts/test.sh` |
 | Nim → EDL migration | **working and measured** — `edl migrate`, see [`specs/migration.md`](specs/migration.md) |
 | Standard library in EDL | planned — `print` is temporarily a compiler builtin |
 | Generics, collections, modules, `Option`/`Result`, `unsafe`, concurrency | planned — specified in `specs/`, rejected with a roadmap-shaped diagnostic today |

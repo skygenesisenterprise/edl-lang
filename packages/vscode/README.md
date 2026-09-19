@@ -35,6 +35,41 @@ The extension is a text-oriented language tool and never re-implements the EDL
 compiler. Advanced features will build on the compiler, its AST and its semantic
 analysis, or on an official EDL Language Server.
 
+## Syntax highlighting palette
+
+EDL's colorization is a deliberate blend of the **TypeScript** and **Python**
+palettes as rendered by the default VS Code theme (Dark+). It uses standard
+TextMate scopes, so any theme that styles TypeScript and Python will style EDL
+consistently.
+
+| EDL construct | TextMate scope | Dark+ color |
+|---------------|----------------|-------------|
+| `fn`, `let`, `var`, `const`, `struct`, `enum`, `if`, `else`, `while`, `for`, `return`, `break`, `continue`, `import`, `proc`, `when`, `try`, `except`, `discard`, … | `keyword.control` | purple `#C586C0` |
+| `and`, `or`, `not`, `in`, `xor`, `shl`, `shr` (Python-style) | `keyword.operator.logical` | purple `#C586C0` |
+| `true`, `false`, `nil` | `constant.language` | blue `#569CD6` |
+| Function names (`fn greet`, `proc foo`) | `entity.name.function` | wheat `#DCDCAA` |
+| Function/method calls (`foo(`, `.bar(`) | `support.function` | wheat `#DCDCAA` |
+| `print`, `echo`, `defined`, `quit`, `sleep`, `sizeof`, `len`, … (Python-style builtins) | `support.function.builtin` | wheat `#DCDCAA` |
+| Struct/enum names (`struct User`, `enum Color`) and type references (`User`, `Color`) | `entity.name.type` | turquoise `#4EC9B0` |
+| Module names after `import`/`from` | `entity.name.namespace` | turquoise `#4EC9B0` |
+| Primitive types (`string`, `i32`, `u64`, `f64`, `bool`, `int`, `seq`, `ref`, `void`, …) | `storage.type` | blue `#569CD6` |
+| Variables | `variable.other.readwrite` | light blue `#9CDCFE` |
+| Parameters (`name: string`) | `variable.parameter` | light blue `#9CDCFE` |
+| Field access (`user.name`) | `variable.other.property` | light blue `#9CDCFE` |
+| All-caps constants (`SIGTERM`, `INFINITE`, `SYNCHRONIZE`) | `constant.other` | green |
+| Enum members (`nkNone`, `cmdEnd`, `nkIntLit`) | `variable.other.enummember` | — |
+| Numbers | `constant.numeric` | green `#B5CEA8` |
+| Strings and chars | `string.quoted.double` / `string.quoted.single` | orange `#CE9178` |
+| `//`, `#`, `/* … */` comments | `comment` | green `#6A9955` |
+| Operators `= + - * / < >` | `keyword.operator` | default |
+| Pragmas `{.thread.}` (bootstrap dialect) | `keyword.other` | — |
+
+The grammar also covers the bootstrap-dialect surface found in the substrate
+(`proc`/`method`/`iterator`, `when`/`defined`, `try`/`except`/`raise`/`discard`,
+`result`, Nim primitive types, numeric type suffixes like `'i32`, `#` comments)
+so that every `.edl` file — EDL source and bootstrap-dialect source alike — is
+properly colorized.
+
 ## Requirements
 
 - Visual Studio Code 1.75.0 or later.

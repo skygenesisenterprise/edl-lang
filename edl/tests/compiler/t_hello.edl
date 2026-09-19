@@ -103,6 +103,25 @@ proc run*() =
       checkEqStr(run.output, "3.14\nE\ntrue\n200\n",
                  "floats, chars, bools and sized integers print correctly")
 
+  # ---- the interpreter: direct execution, no external compiler ----
+  block:
+    var opts = CompileOptions()
+    opts.inputPath = writeProgram("interp",
+      "fn main() {\n" &
+      "    var total: i32 = 0\n" &
+      "    var i: i32 = 0\n" &
+      "    while i < 4 { total = total + i i = i + 1 }\n" &
+      "    print(total)\n" &
+      "}")
+    opts.outDir = outRoot
+    opts.interpret = true
+    let r = compileFile(opts)
+    check(r.ok, "the interpreter runs a program directly")
+    check(not r.diags.hasErrors(), "an interpreted program has no diagnostics")
+    checkEqInt(r.exitCode, 0, "the interpreter exits successfully")
+    check(r.irModule != nil, "the interpreter is driven from the IR")
+    check(r.exePath.len == 0, "the interpreter produces no executable")
+
   # ---- artifacts and intermediate representations ----
   block:
     var opts = CompileOptions()

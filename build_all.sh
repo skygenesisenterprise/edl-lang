@@ -9,6 +9,13 @@ set -u # error on undefined variables
 set -e # exit on first error
 
 . ci/funs.sh
+
+# The repository sources are .edl (EDL); the Nim substrate compiles only .nim.
+# Materialise transient .nim siblings for every substrate .edl so the commands
+# below (koch, compiler/nim.edl, testament, ...) resolve unchanged. The generated
+# .nim are gitignored build artifacts; the committed tree stays exclusively .edl.
+sh scripts/mirror-edl.sh
+
 nimBuildCsourcesIfNeeded "$@"
 
 echo_run bin/nim c --noNimblePath --skipUserCfg --skipParentCfg --hints:off koch

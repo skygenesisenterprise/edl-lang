@@ -8,18 +8,51 @@
     { "include": "#strings" },
     { "include": "#chars" },
     { "include": "#numbers" },
+    { "include": "#function-declaration" },
+    { "include": "#proc-declaration" },
+    { "include": "#type-declaration" },
+    { "include": "#import-module" },
+    { "include": "#logical-keywords" },
     { "include": "#keywords" },
+    { "include": "#language-constants" },
     { "include": "#types" },
     { "include": "#builtin" },
+    { "include": "#function-call" },
+    { "include": "#pragma" },
+    { "include": "#storage-modifier" },
+    { "include": "#type-annotation" },
+    { "include": "#return-type" },
+    { "include": "#method-call" },
+    { "include": "#property-access" },
+    { "include": "#enum-members" },
+    { "include": "#constants" },
+    { "include": "#type-reference" },
+    { "include": "#backtick-identifiers" },
     { "include": "#operators" },
-    { "include": "#function-declaration" },
-    { "include": "#type-declaration" },
-    { "include": "#identifiers" },
-    { "include": "#punctuation" }
+    { "include": "#punctuation" },
+    { "include": "#identifiers" }
   ],
   "repository": {
     "comments": {
       "patterns": [
+        {
+          "begin": "#\\[",
+          "end": "\\]\\#",
+          "name": "comment.block.nest.edl",
+          "beginCaptures": { "0": { "name": "punctuation.definition.comment.begin.edl" } },
+          "endCaptures": { "0": { "name": "punctuation.definition.comment.end.edl" } },
+          "patterns": [{ "include": "#comments" }]
+        },
+        {
+          "begin": "##",
+          "end": "$",
+          "name": "comment.line.documentation.edl"
+        },
+        {
+          "begin": "#",
+          "end": "$",
+          "name": "comment.line.number-sign.edl"
+        },
         {
           "begin": "//",
           "end": "$",
@@ -37,6 +70,20 @@
     },
     "strings": {
       "patterns": [
+        {
+          "begin": "\"\"\"",
+          "end": "\"\"\"",
+          "name": "string.quoted.triple.edl",
+          "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.edl" } },
+          "endCaptures": { "0": { "name": "punctuation.definition.string.end.edl" } }
+        },
+        {
+          "begin": "\\br\"",
+          "end": "\"",
+          "name": "string.quoted.raw.edl",
+          "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.edl" } },
+          "endCaptures": { "0": { "name": "punctuation.definition.string.end.edl" } }
+        },
         {
           "begin": "\"",
           "end": "\"",
@@ -82,23 +129,74 @@
           "name": "constant.numeric.float.edl"
         },
         {
-          "match": "\\b[0-9][0-9_]*\\b",
+          "match": "\\b[0-9][0-9_]*('[a-zA-Z][a-zA-Z0-9]*)?\\b",
           "name": "constant.numeric.integer.decimal.edl"
+        }
+      ]
+    },
+    "import-module": {
+      "patterns": [
+        {
+          "match": "\\b(import|from)\\s+([A-Za-z_][A-Za-z0-9_./]*)",
+          "captures": {
+            "1": { "name": "keyword.control.edl" },
+            "2": { "name": "entity.name.namespace.edl" }
+          }
+        }
+      ]
+    },
+    "enum-members": {
+      "patterns": [
+        {
+          "match": "\\b(?:nk|cmd)[A-Z][A-Za-z0-9_]*\\b",
+          "name": "variable.other.enummember.edl"
+        }
+      ]
+    },
+    "logical-keywords": {
+      "patterns": [
+        {
+          "match": "\\b(and|or|not|in|is|isnot|notin|of|xor|shl|shr)\\b",
+          "name": "keyword.operator.logical.edl"
         }
       ]
     },
     "keywords": {
       "patterns": [
         {
-          "match": "\\b(fn|let|var|const|struct|enum|import|from|if|else|while|for|in|return|true|false|nil|break|continue|and|or|not|unsafe)\\b",
+          "match": "\\b(fn|func|proc|method|iterator|let|var|const|struct|enum|type|import|from|export|include|as|if|elif|else|when|while|for|case|return|break|continue|try|except|finally|raise|discard|block|do|defer|yield|template|macro|converter|using|pragma|bind|mixin|addr|cast|static|unsafe)\\b",
           "name": "keyword.control.edl"
+        },
+        {
+          "match": "\\bnew\\b",
+          "name": "keyword.operator.new.edl"
+        },
+        {
+          "match": "\\bresult\\b",
+          "name": "variable.language.edl"
+        }
+      ]
+    },
+    "storage-modifier": {
+      "patterns": [
+        {
+          "match": "\\b(sink|lent|owned|out|varargs|noalias)\\b",
+          "name": "storage.modifier.edl"
+        }
+      ]
+    },
+    "language-constants": {
+      "patterns": [
+        {
+          "match": "\\b(true|false|nil)\\b",
+          "name": "constant.language.edl"
         }
       ]
     },
     "types": {
       "patterns": [
         {
-          "match": "\\b(bool|i8|i16|i32|i64|i128|u8|u16|u32|u64|u128|f32|f64|char|string|bytes|isize|usize|void)\\b",
+          "match": "\\b(bool|i8|i16|i32|i64|i128|u8|u16|u32|u64|u128|f32|f64|char|string|bytes|isize|usize|void|int|uint|int8|int16|int32|int64|uint8|uint16|uint32|uint64|float|float32|float64|seq|array|tuple|object|ref|ptr|range|set|distinct|openArray|varargs|cstring|typedesc|concept|Natural|Positive)\\b",
           "name": "storage.type.edl"
         }
       ]
@@ -106,16 +204,78 @@
     "builtin": {
       "patterns": [
         {
-          "match": "\\bprint\\b",
+          "match": "\\b(print|echo|quit|defined|sleep|sizeof|high|low|len|succ|pred|inc|dec|ord|chr|abs|min|max)\\b",
           "name": "support.function.builtin.edl"
         }
       ]
     },
-    "operators": {
+    "function-call": {
       "patterns": [
         {
-          "match": "==|!=|<=|>=|->|=|<|>|\\+|-|\\*|/|%|\\?",
-          "name": "keyword.operator.edl"
+          "match": "\\b([A-Za-z_][A-Za-z0-9_]*)\\s*(?=\\()",
+          "captures": {
+            "1": { "name": "support.function.edl" }
+          }
+        }
+      ]
+    },
+    "method-call": {
+      "patterns": [
+        {
+          "match": "\\.([A-Za-z_][A-Za-z0-9_]*)\\s*(?=\\()",
+          "captures": {
+            "1": { "name": "support.function.edl" }
+          }
+        }
+      ]
+    },
+    "constants": {
+      "patterns": [
+        {
+          "match": "\\b[A-Z][A-Z0-9_]+\\b",
+          "name": "constant.other.edl"
+        }
+      ]
+    },
+    "pragma": {
+      "patterns": [
+        {
+          "begin": "\\{\\.",
+          "end": "\\.\\}",
+          "name": "keyword.other.edl",
+          "beginCaptures": { "0": { "name": "punctuation.definition.pragma.begin.edl" } },
+          "endCaptures": { "0": { "name": "punctuation.definition.pragma.end.edl" } }
+        }
+      ]
+    },
+    "type-annotation": {
+      "patterns": [
+        {
+          "match": ":\\s*(bool|i8|i16|i32|i64|i128|u8|u16|u32|u64|u128|f32|f64|char|string|bytes|isize|usize|void|int|uint|int8|int16|int32|int64|uint8|uint16|uint32|uint64|float|float32|float64|seq|array|tuple|object|ref|ptr|range|set|distinct|openArray|varargs|cstring|typedesc|concept)\\b",
+          "captures": {
+            "1": { "name": "storage.type.edl" }
+          }
+        }
+      ]
+    },
+    "return-type": {
+      "patterns": [
+        {
+          "match": "(->)\\s*([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": { "name": "keyword.operator.edl" },
+            "2": { "name": "storage.type.edl" }
+          }
+        }
+      ]
+    },
+    "property-access": {
+      "patterns": [
+        {
+          "match": "\\.([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": { "name": "variable.other.property.edl" }
+          }
         }
       ]
     },
@@ -129,10 +289,43 @@
           },
           "end": "\\{",
           "patterns": [
+            { "include": "#params" },
+            { "include": "#return-type" },
             { "include": "#types" },
             { "include": "#comments" },
             { "include": "#keywords" }
           ]
+        }
+      ]
+    },
+    "proc-declaration": {
+      "patterns": [
+        {
+          "begin": "\\b(proc|func|method|iterator)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "beginCaptures": {
+            "1": { "name": "keyword.control.edl" },
+            "2": { "name": "entity.name.function.edl" }
+          },
+          "end": "(?= =)",
+          "patterns": [
+            { "include": "#params" },
+            { "include": "#return-type" },
+            { "include": "#types" },
+            { "include": "#pragma" },
+            { "include": "#comments" },
+            { "include": "#keywords" }
+          ]
+        }
+      ]
+    },
+    "params": {
+      "patterns": [
+        {
+          "match": "([A-Za-z_][A-Za-z0-9_]*)\\s*:\\s*([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": { "name": "variable.parameter.edl" },
+            "2": { "name": "storage.type.edl" }
+          }
         }
       ]
     },
@@ -145,7 +338,61 @@
             "2": { "name": "entity.name.type.edl" }
           },
           "end": "\\{",
-          "patterns": [{ "include": "#comments" }]
+          "patterns": [
+            { "include": "#fields" },
+            { "include": "#types" },
+            { "include": "#comments" }
+          ]
+        }
+      ]
+    },
+    "fields": {
+      "patterns": [
+        {
+          "match": "([A-Za-z_][A-Za-z0-9_]*)\\s*:\\s*([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": { "name": "variable.other.property.edl" },
+            "2": { "name": "storage.type.edl" }
+          }
+        }
+      ]
+    },
+    "type-reference": {
+      "patterns": [
+        {
+          "match": "\\b[A-Z][A-Za-z0-9_]*\\b",
+          "name": "entity.name.type.edl"
+        }
+      ]
+    },
+    "backtick-identifiers": {
+      "patterns": [
+        {
+          "begin": "`",
+          "end": "`",
+          "name": "entity.name.edl",
+          "beginCaptures": { "0": { "name": "punctuation.definition.identifier.begin.edl" } },
+          "endCaptures": { "0": { "name": "punctuation.definition.identifier.end.edl" } }
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "match": "\\b(div|mod|notin|is|isnot|shl|shr|and|or|xor)\\b",
+          "name": "keyword.operator.edl"
+        },
+        {
+          "match": "\\.\\.<|\\.\\.\\.|\\.\\.\\^|\\.\\.|:=|::|=>|->|==|!=|<=|>=|<<|>>|\\+=|-=|\\*=|/=|%=|&=|\\|=|\\^=|=|<|>|\\+|-|\\*|/|%|\\$|@|&|\\||\\^|~|\\?",
+          "name": "keyword.operator.edl"
+        }
+      ]
+    },
+    "punctuation": {
+      "patterns": [
+        {
+          "match": "\\(|\\)|\\{|\\}|\\[|\\]|,|:|\\.",
+          "name": "punctuation.separator.edl"
         }
       ]
     },
@@ -153,15 +400,7 @@
       "patterns": [
         {
           "match": "\\b[A-Za-z_][A-Za-z0-9_]*\\b",
-          "name": "variable.other.edl"
-        }
-      ]
-    },
-    "punctuation": {
-      "patterns": [
-        {
-          "match": "\\(|\\)|\\{|\\}|\\[|\\]|,|:|\\.|;",
-          "name": "punctuation.separator.edl"
+          "name": "variable.other.readwrite.edl"
         }
       ]
     }
