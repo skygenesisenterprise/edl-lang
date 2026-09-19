@@ -6,28 +6,28 @@
 EDL source (.edl)
       │
       ▼
-   Lexer          edl/src/edl/lexer.nim        text -> tokens
+   Lexer          edl/src/edl/lexer.edl        text -> tokens
       │
       ▼
-   Parser         edl/src/edl/parser.nim       tokens -> AST
+   Parser         edl/src/edl/parser.edl       tokens -> AST
       │
       ▼
- Name resolution  edl/src/edl/resolve.nim      identifiers -> symbols
+ Name resolution  edl/src/edl/resolve.edl      identifiers -> symbols
       │
       ▼
- Type checking    edl/src/edl/typecheck.nim    nodes -> types
+ Type checking    edl/src/edl/typecheck.edl    nodes -> types
       │
       ▼
-   Lowering       edl/src/edl/lowering.nim     typed AST -> IR
+   Lowering       edl/src/edl/lowering.edl     typed AST -> IR
       │
       ▼
-   Backend        edl/src/edl/backends/*.nim   IR -> source
+   Backend        edl/src/edl/backends/*.edl   IR -> source
       │
       ▼
   Native binary
 ```
 
-Orchestration is `edl/src/edl/driver.nim`; the command line is `edl/src/edlc.nim`.
+Orchestration is `edl/src/edl/driver.edl`; the command line is `edl/src/edlc.edl`.
 
 ### One job per stage
 
@@ -66,7 +66,7 @@ depth-first order, so they are stable for a given source text.
 EDL source -> EDL IR -> Nim source -> C -> native
 ```
 
-`backends/nimbackend.nim` emits Nim, and `backends/backend.nim` is the only
+`backends/bootstrapbackend.edl` emits bootstrap source, and `backends/backend.edl` is the only
 module the rest of the compiler talks to about code generation. Dispatch is an
 enum and a `case`, not an object hierarchy: virtual dispatch has no EDL
 equivalent, and would be an untranslatable construct in a toolchain meant to be
@@ -89,7 +89,7 @@ edl build     <file.edl>    compile to a native executable.
 edl run       <file.edl>    build, then run.
 edl emit-nim  <file.edl>    stop after the backend source is written.
 edl emit-ast  <file.edl>    print the parsed tree.
-edl migrate   <file.nim>    translate a Nim source file to EDL, with a report.
+edl migrate   <file.edl>    translate a bootstrap-dialect source file to EDL, with a report.
 edl version
 edl help
 edl init | fmt | test | doc | add | remove    declared, not implemented yet
@@ -125,7 +125,7 @@ program behaves normally.
 
 ### Locating the bootstrap compiler
 
-In order: `--nim <path>`, then `EDL_NIM`, then `bin/nim` in the working directory,
+In order: `--bootstrap <path>`, then `EDL_BOOTSTRAP`, then `bin/nim` in the working directory,
 then `nim` from `PATH`.
 
 ### Editor and GitHub integration (roadmap)
@@ -144,6 +144,28 @@ are tracked as tooling work, not faked in advance of real implementations:
   by-product of a stabilised syntax and is not created before the parser is
   settled. TODO: contribute a `tree-sitter-edl` grammar and mirror the VS Code
   language identity (scope `source.edl`) so editors share one parse tree.
+
+### Formatter, linter and language server (roadmap)
+
+`edl fmt`, a linter and a language server (`edl lsp`) are declared in the
+toolchain contract but are **not implemented yet**; this is status, not a fake
+behaviour. When they arrive they must reuse the compiler's own components rather
+than maintain a second, independent parse tree:
+
+```text
+EDL compiler
+   ├── lexer ──┐
+   ├── parser ─┤
+   ├── AST   ──┼──→ formatter / linter / language server (one parse tree)
+   ├── resolve ─┤
+   ├── typecheck─┤
+   └── diagnostics┘
+```
+
+A formatter, linter or LSP that parses source again with its own parser would
+drift from the compiler the moment the language changes. The tools ship in the
+EDL tree (`edl/tools/`) once the compiler components they depend on are stable.
+Nothing is scaffolded ahead of the implementation it needs.
 
 ## Testing
 

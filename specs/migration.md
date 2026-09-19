@@ -7,9 +7,9 @@ The migration from the Nim bootstrap substrate to EDL is a **command**, not a
 manual rewrite and not a textual rename:
 
 ```sh
-edl migrate <file.nim>              # writes <file>.edl next to it
-edl migrate <file.nim> -o out.edl   # writes elsewhere
-edl migrate <file.nim> --stdout     # prints the translation, writes nothing
+edl migrate <file.edl>              # writes <file>.edl next to it
+edl migrate <file.edl> -o out.edl   # writes elsewhere
+edl migrate <file.edl> --stdout     # prints the translation, writes nothing
 ```
 
 Exit status is `0` when the whole file was translated, `1` when at least one
@@ -41,7 +41,7 @@ which is the subset the EDL toolchain itself is written in. The migrator is not 
 general-purpose Nim translator and does not try to be: unsupported input is
 reported, never misread.
 
-The input language is recognised by its own tokenizer (`edl/src/edl/migrate/nimlex.nim`),
+The input language is recognised by its own tokenizer (`edl/src/edl/migrate/bootstrap_lex.edl`),
 not by the EDL lexer.
 
 ## What is translated
@@ -108,24 +108,24 @@ bootstrap dialect precisely so that this run is possible at any point.
 
 | File | Lines | Not translated | Notes |
 |------|-------|----------------|-------|
-| `edl/src/edl/ast.nim` | 210 | 43 | 21 |
-| `edl/src/edl/diagnostics.nim` | 207 | 69 | 24 |
-| `edl/src/edl/driver.nim` | 200 | 54 | 12 |
-| `edl/src/edl/ir.nim` | 198 | 44 | 17 |
-| `edl/src/edl/lexer.nim` | 341 | 55 | 79 |
-| `edl/src/edl/lowering.nim` | 215 | 103 | 15 |
-| `edl/src/edl/parser.nim` | 593 | 118 | 33 |
-| `edl/src/edl/resolve.nim` | 283 | 64 | 13 |
-| `edl/src/edl/scopes.nim` | 104 | 25 | 21 |
-| `edl/src/edl/source.nim` | 115 | 30 | 15 |
-| `edl/src/edl/tokens.nim` | 184 | 9 | 15 |
-| `edl/src/edl/typecheck.nim` | 619 | 85 | 41 |
-| `edl/src/edl/types.nim` | 220 | 30 | 65 |
-| `edl/src/edl/backends/backend.nim` | 47 | 4 | 18 |
-| `edl/src/edl/backends/nimbackend.nim` | 311 | 91 | 50 |
-| `edl/src/edl/migrate/nimlex.nim` | 241 | 49 | 24 |
-| `edl/src/edl/migrate/translate.nim` | 1365 | 310 | 103 |
-| `edl/src/edlc.nim` | 229 | 25 | 51 |
+| `edl/src/edl/ast.edl` | 210 | 43 | 21 |
+| `edl/src/edl/diagnostics.edl` | 207 | 69 | 24 |
+| `edl/src/edl/driver.edl` | 200 | 54 | 12 |
+| `edl/src/edl/ir.edl` | 198 | 44 | 17 |
+| `edl/src/edl/lexer.edl` | 341 | 55 | 79 |
+| `edl/src/edl/lowering.edl` | 215 | 103 | 15 |
+| `edl/src/edl/parser.edl` | 593 | 118 | 33 |
+| `edl/src/edl/resolve.edl` | 283 | 64 | 13 |
+| `edl/src/edl/scopes.edl` | 104 | 25 | 21 |
+| `edl/src/edl/source.edl` | 115 | 30 | 15 |
+| `edl/src/edl/tokens.edl` | 184 | 9 | 15 |
+| `edl/src/edl/typecheck.edl` | 619 | 85 | 41 |
+| `edl/src/edl/types.edl` | 220 | 30 | 65 |
+| `edl/src/edl/backends/backend.edl` | 47 | 4 | 18 |
+| `edl/src/edl/backends/bootstrapbackend.edl` | 311 | 91 | 50 |
+| `edl/src/edl/migrate/bootstrap_lex.edl` | 241 | 49 | 24 |
+| `edl/src/edl/migrate/translate.edl` | 1365 | 310 | 103 |
+| `edl/src/edlc.edl` | 229 | 25 | 51 |
 | **Total** | **5682** | **1200** | **598** |
 
 Roughly **one in five lines** depends on a language feature EDL does not have
@@ -157,7 +157,7 @@ collections and the operations over them** before anything else. The third,
 The report has two sections, and the distinction matters:
 
 ```
-edl/src/edl/source.nim: 30 construct(s) not translated, 16 note(s)
+edl/src/edl/source.edl: 30 construct(s) not translated, 16 note(s)
 not translated (the output does not compile until these are resolved)
   line 16: the type `seq[isize]` -- collections are not implemented yet (specs/types.md)
   ...

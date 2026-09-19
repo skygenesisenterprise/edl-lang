@@ -2,8 +2,9 @@
 # Run the EDL test suite.
 #
 # Categories live in edl/tests/<category>/ and are aggregated by
-# edl/tests/runner.nim. End-to-end tests (edl/tests/compiler/) exercise the real
-# compiler binary, whose path is passed through EDL_BIN.
+# edl/tests/runner.edl (generated as runner.nim). End-to-end tests
+# (edl/tests/compiler/) exercise the real compiler binary, whose path is passed
+# through EDL_BIN.
 
 set -e
 
@@ -19,16 +20,19 @@ if [ ! -x "$nim" ]; then
   exit 1
 fi
 
-# The end-to-end tests need the compiler itself. Until edlc.nim exists, the
+# The end-to-end tests need the compiler itself. The compiler and the test
+# runner both live as .edl sources and are compiled from the generated .nim tree
+# in build/edl/src-gen (see build.sh). Until the compiler entry exists, the
 # frontend unit tests still run: they exercise the lexer, parser and semantic
 # passes directly, without going through the driver.
-if [ -f "$root/edl/src/edlc.nim" ]; then
+if [ -f "$root/edl/src/edlc.edl" ]; then
   "$root/edl/scripts/build.sh"
 else
-  echo "note: edl/src/edlc.nim does not exist yet; skipping the compiler build."
+  echo "note: edl/src/edlc.edl does not exist yet; skipping the compiler build."
 fi
 
-mkdir -p "$root/build/edl"
+gen="$root/build/edl/src-gen"
+mkdir -p "$gen"
 
 echo "building EDL test runner ..."
 "$nim" c \
@@ -36,10 +40,10 @@ echo "building EDL test runner ..."
   --skipUserCfg \
   --skipParentCfg \
   --hints:off \
-  --path:"$root/edl/src" \
+  --path:"$gen" \
   --nimcache:"$root/build/edl/nimcache-tests" \
   -o:"$root/build/edl/edl_tests" \
-  "$root/edl/tests/runner.nim"
+  "$gen/runner.nim"
 
 echo "running EDL tests ..."
-EDL_BIN="$root/build/edl/edlc" EDL_NIM="$nim" "$root/build/edl/edl_tests"
+EDL_BIN="$root/build/edl/edlc" EDL_BOOTSTRAP="$nim" "$root/build/edl/edl_tests"

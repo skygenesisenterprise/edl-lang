@@ -20,7 +20,7 @@ The audit measured that request's surface: **~19 600 occurrences of "nim" across
 | `tests/` | 4 399 | test names and expected outputs, `testament` configuration |
 | `doc/`, `changelogs/` | 4 707 | prose |
 | `tools/`, `config/`, `ci/`, `.github/` | 1 008 | executed scripts and CI references |
-| `testament/`, `nimsuggest/`, `nimpretty/`, `drnim/` | 995 | tooling source |
+| `testament/`, `lsp/`, `formatter/`, `analyzer/` | 995 | tooling source |
 | root files | 711 | `koch.nim`, `readme.md`, `nim.nimble`, build scripts |
 
 A textual replacement across the first, second, third and seventh rows does not
@@ -59,7 +59,7 @@ It does not cover code, build logic or test expectations, which are rebranded as
 | `koch.nim`, `build_all.sh`, `build_all.bat`, `nim.nimble`, `config/nim.cfg`, `config/build_config.txt` | Build logic. `build_all.sh` is what produces `bin/nim`; renaming inside it breaks bootstrapping. Replaced when `edl build` covers bootstrapping. |
 | `ci/`, `azure-pipelines.yml`, `.github/` | CI references upstream actions, toolchain suffixes and repository URLs that are executed, not displayed. Re-cibled on EDL CI in a later phase. |
 | `doc/`, `changelogs/` | Historical Nim documentation. Superseded by `specs/`, then removed — not renamed into misleading EDL documentation. |
-| `nimsuggest/`, `nimpretty/`, `drnim/` | Tools that are *for* the Nim bootstrap compiler. They become `edl lsp`, `edl fmt`, `edl check` when those are written. |
+| `lsp/`, `formatter/`, `analyzer/` (renamed from `nimsuggest/`, `nimpretty/`, `drnim/`) | Tools that are *for* the Nim bootstrap compiler. They become `edl lsp`, `edl fmt`, `edl check` when those are written. |
 
 **Rule going forward**
 

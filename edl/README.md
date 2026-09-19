@@ -13,33 +13,33 @@ the Nim components in `../compiler`, `../lib`, `../tools` and `../testament`.
 edl/
 ├── src/
 │   ├── edl/                 the EDL compiler frontend
-│   │   ├── source.nim       source files, positions, spans
-│   │   ├── diagnostics.nim  diagnostics, codes, rendering (first-class feature)
-│   │   ├── tokens.nim       token kinds and keyword table
-│   │   ├── lexer.nim        lexical analysis
-│   │   ├── ast.nim          the EDL abstract syntax tree
-│   │   ├── parser.nim       recursive-descent parser
-│   │   ├── types.nim        the EDL type system model
-│   │   ├── scopes.nim       symbols and scopes
-│   │   ├── resolve.nim      name resolution
-│   │   ├── typecheck.nim    type checking
-│   │   ├── ir.nim           the EDL intermediate representation
-│   │   ├── lowering.nim     typed AST -> IR
-│   │   ├── driver.nim       pipeline orchestration
+│   │   ├── source.edl       source files, positions, spans
+│   │   ├── diagnostics.edl  diagnostics, codes, rendering (first-class feature)
+│   │   ├── tokens.edl       token kinds and keyword table
+│   │   ├── lexer.edl        lexical analysis
+│   │   ├── ast.edl          the EDL abstract syntax tree
+│   │   ├── parser.edl       recursive-descent parser
+│   │   ├── types.edl        the EDL type system model
+│   │   ├── scopes.edl       symbols and scopes
+│   │   ├── resolve.edl      name resolution
+│   │   ├── typecheck.edl    type checking
+│   │   ├── ir.edl           the EDL intermediate representation
+│   │   ├── lowering.edl     typed AST -> IR
+│   │   ├── driver.edl       pipeline orchestration
 │   │   ├── backends/
-│   │   │   ├── backend.nim      backend interface (the replacement seam)
-│   │   │   └── nimbackend.nim   bootstrap backend: EDL -> Nim -> C -> native
-│   │   └── migrate/         the Nim -> EDL migrator
-│   │       ├── nimlex.nim   tokeniser for the Nim bootstrap dialect
-│   │       └── translate.nim  translation, with the report
-│   └── edlc.nim             the EDL compiler executable
+│   │   │   ├── backend.edl      backend interface (the replacement seam)
+│   │   │   └── bootstrapbackend.edl  bootstrap backend: EDL -> bootstrap -> C -> native
+│   │   └── migrate/         the bootstrap -> EDL migrator
+│   │       ├── bootstrap_lex.edl  tokeniser for the bootstrap dialect
+│   │       └── translate.edl  translation, with the report
+│   └── edlc.edl             the EDL compiler executable
 ├── examples/                small EDL programs
 ├── scripts/                 build.sh, test.sh
 └── tests/
-    ├── framework.nim        tiny assertion framework (no macros)
-    ├── runner.nim           runs every category
+    ├── framework.edl        tiny assertion framework (no macros)
+    ├── runner.edl           runs every category
     ├── lexer/ parser/ types/ errors/
-    ├── migrate/             Nim -> EDL, including round trips
+    ├── migrate/             bootstrap -> EDL, including round trips
     └── compiler/            end-to-end: EDL source -> native binary
 ```
 
@@ -60,7 +60,7 @@ cannot be translated, and would quietly anchor Nim semantics into the new langua
 Staying inside the dialect keeps every file in this tree a candidate for automated
 migration instead of a rewrite.
 
-The dialect is enforced by tooling, not convention: `edl migrate <file.nim>`
+The dialect is enforced by tooling, not convention: `edl migrate <file.edl>`
 understands exactly this subset and reports anything outside it instead of
 misreading it. Run it on any file in this tree to see what that file is still
 waiting for.
@@ -88,7 +88,7 @@ build/edl/edlc check     edl/examples/hello.edl
 build/edl/edlc build     edl/examples/hello.edl -o hello
 build/edl/edlc run       edl/examples/hello.edl
 build/edl/edlc emit-nim  edl/examples/hello.edl     # inspect the bootstrap output
-build/edl/edlc migrate   edl/src/edl/source.nim    # translate Nim to EDL, with a report
+build/edl/edlc migrate   edl/src/edl/source.edl    # translate the bootstrap dialect to EDL, with a report
 ```
 
 `edl migrate` is how this tree stops being Nim. It reads the bootstrap dialect and
@@ -107,6 +107,6 @@ silently doing nothing.
 lets the EDL language be tested end to end — real programs, real native binaries,
 real output — long before the EDL backend is written.
 
-It is isolated behind `backends/backend.nim`. Replacing it with a direct native
+It is isolated behind `backends/backend.edl`. Replacing it with a direct native
 backend is a change to one backend implementation, not to the language, the
 frontend, or the IR.

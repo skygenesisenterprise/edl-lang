@@ -81,7 +81,7 @@ Deliberately *not* renamed at this stage, and why, is recorded in
 * The C toolchain invocation (`extccomp`) sits behind the driver's build step.
 * Module loading and the module graph (`modules`, `modulegraphs`, `importer`).
 * Diagnostics (`msgs`, `lineinfos`) — EDL has its own from day one
-  (`edl/src/edl/diagnostics.nim`); the Nim ones are only used by the substrate.
+  (`edl/src/edl/diagnostics.edl`); the Nim ones are only used by the substrate.
 
 ### Replaced progressively (EDL implementation required)
 
@@ -116,19 +116,19 @@ EDL source (.edl)
    Lexer ──────────── tokens ────────┐
       │                              │
       ▼                              │
-   Parser ──────────── EDL AST ──────┤   edl/src/edl/{lexer,parser,ast}.nim
+   Parser ──────────── EDL AST ──────┤   edl/src/edl/{lexer,parser,ast}.edl
       │                              │
       ▼                              │
-Name resolution ───── bindings ──────┤   resolve.nim, scopes.nim
+Name resolution ───── bindings ──────┤   resolve.edl, scopes.edl
       │                              │
       ▼                              │
- Type checking ─────── typed AST ────┤   types.nim, typecheck.nim
+ Type checking ─────── typed AST ────┤   types.edl, typecheck.edl
       │                              │
       ▼                              │
-   Lowering ─────────── EDL IR ──────┘   ir.nim, lowering.nim
+   Lowering ─────────── EDL IR ──────┘   ir.edl, lowering.edl
       │
       ▼
-  Backend interface ──┬── Nim backend (bootstrap, temporary)
+  Backend interface ──┬── bootstrap backend (transitional)
                       ├── Native backend (target)
                       └── WASM backend (future)
 ```

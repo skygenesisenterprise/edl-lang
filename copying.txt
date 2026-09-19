@@ -2,7 +2,7 @@
 EDL -- a language for backend, systems and web development.
 https://github.com/skygenesisenterprise/edl-lang
 
-Copyright (C) 2026 SkyGenesis Enterprise. All rights reserved.
+Copyright (C) 2026 Sky Genesis Enterprise. All rights reserved.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -31,8 +31,8 @@ Derived work notice
 This repository is derived from the Nim compiler and standard library
 (https://github.com/nim-lang/Nim). The following upstream license applies to
 all the code inherited from that project -- the compiler in `compiler/`, the
-standard library in `lib/`, the tooling in `tools/`, `testament/`,
-`nimsuggest/`, `nimpretty/` and `drnim/`, the tests in `tests/`, and the
+standard library in `lib/`, the tooling in `tools/`, `testament/`, `lsp/`,
+`formatter/` and `analyzer/`, the tests in `tests/`, and the
 documentation in `doc/` and `changelogs/`.
 
 Those components are used as the *bootstrap substrate* of the EDL toolchain and

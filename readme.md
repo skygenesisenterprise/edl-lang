@@ -98,7 +98,7 @@ The Nim substrate is not going to be rewritten by hand, and it is not going to b
 renamed. It is being **migrated**:
 
 ```sh
-build/edl/edlc migrate edl/src/edl/source.nim    # Nim -> EDL, with a report
+build/edl/edlc migrate edl/src/edl/source.edl    # bootstrap dialect -> EDL, with a report
 ```
 
 `edl migrate` translates what EDL defines and **names** what it does not, pointing
@@ -111,7 +111,7 @@ Running it over the EDL compiler itself — 5 682 lines — currently reports ab
 implementation order for the language: collections and `Option<T>` account for
 more than half. The full measurement, and what each missing feature would unblock,
 is in [`specs/migration.md`](specs/migration.md); the decision behind it is
-[ADR-0004](specs/decisions/ADR-0004-nim-to-edl-migrator.md).
+[ADR-0004](specs/decisions/ADR-0004-bootstrap-to-edl-migrator.md).
 
 ## Repository layout
 
@@ -122,7 +122,7 @@ is in [`specs/migration.md`](specs/migration.md); the decision behind it is
 | `compiler/` | The Nim compiler. Used as the *bootstrap substrate* that builds the EDL toolchain. | Nim — frozen, progressively replaced |
 | `lib/` | The Nim standard library (the substrate runtime). | Nim — progressively replaced |
 | `koch.nim`, `build_all.sh` | The Nim build system. | Nim — replaced by the `edl` toolchain |
-| `tools/`, `testament/`, `nimsuggest/`, `nimpretty/`, `drnim/` | Nim tooling: build, tests, IDE, formatter, analyzer. | Nim — redefined as EDL tools |
+| `tools/`, `testament/`, `lsp/`, `formatter/`, `analyzer/` | Nim tooling: build, tests, IDE, formatter, analyzer. | Nim — redefined as EDL tools |
 | `tests/` | The Nim test suite. Kept as a **non-regression harness** for the migration. | Nim — drives EDL correctness |
 | `doc/`, `changelogs/` | Nim documentation and history. | Nim — reference |
 
@@ -156,18 +156,21 @@ reports every construct it cannot translate, so the distance between the substra
 and the language is a measured number rather than an assumption. See
 [`specs/migration.md`](specs/migration.md).
 
+Every remaining reference to the substrate — and the reason it stays — is
+registered in [`specs/bootstrap-references.md`](specs/bootstrap-references.md).
+
 ## Project status
 
 | Milestone | State |
 |-----------|-------|
 | Repository audit and architecture mapping | **done** — see [`specs/architecture.md`](specs/architecture.md) |
 | Nim bootstrap toolchain (`bin/nim`) | **working** — built from `csources_v3` |
-| Source tracking and diagnostics | **working** — `edl/src/edl/source.nim`, `diagnostics.nim` |
-| Lexical analysis | **working** — `tokens.nim`, `lexer.nim` |
-| AST and parser | **working** — `ast.nim`, `parser.nim` |
-| Name resolution | **working** — `scopes.nim`, `resolve.nim` |
-| Type system and type checking | **working** — `types.nim`, `typecheck.nim` |
-| EDL IR and lowering | **working** — `ir.nim`, `lowering.nim` |
+| Source tracking and diagnostics | **working** — `edl/src/edl/source.edl`, `diagnostics.edl` |
+| Lexical analysis | **working** — `tokens.edl`, `lexer.edl` |
+| AST and parser | **working** — `ast.edl`, `parser.edl` |
+| Name resolution | **working** — `scopes.edl`, `resolve.edl` |
+| Type system and type checking | **working** — `types.edl`, `typecheck.edl` |
+| EDL IR and lowering | **working** — `ir.edl`, `lowering.edl` |
 | Backend | **working, transitional** — EDL lowers to Nim, then C, then a native binary |
 | Programs that compile and run | **working** — see [Try it now](#try-it-now) |
 | Toolchain | **partial** — `check`, `build`, `run`, `emit-nim`, `emit-ast`, `migrate` work; `init`, `fmt`, `test`, `doc`, `add`, `remove` are declared but not implemented |

@@ -27,10 +27,10 @@
 /lib/** linguist-vendored
 /tools/** linguist-vendored
 /testament/** linguist-vendored
-/nimsuggest/** linguist-vendored
-/nimpretty/** linguist-vendored
-/drnim/** linguist-vendored
-/nimdoc/** linguist-vendored
+/lsp/** linguist-vendored
+/formatter/** linguist-vendored
+/analyzer/** linguist-vendored
+/docgen/** linguist-vendored
 /config/** linguist-vendored
 /doc/** linguist-vendored
 /changelogs/** linguist-vendored
