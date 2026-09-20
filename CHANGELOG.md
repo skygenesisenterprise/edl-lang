@@ -15,6 +15,23 @@ from are recorded in [`changelog.md`](changelog.md) and
 
 ## [Unreleased]
 
+### Added
+
+- The project layer: an `edl.toml` manifest parsed with a strict TOML subset
+  (`[project]`, `[dependencies]`, quoted strings, comments), with file and
+  line on every error (`edl/src/edl/project.edl`).
+- `edl init` scaffolds a project (`edl.toml` + `src/main.edl`) and refuses to
+  overwrite an existing one.
+- Project mode: `edl check`, `build`, `run`, `emit-nim` and `emit-ast` compile
+  the entry point of the nearest `edl.toml` when no file argument is given.
+- `edl test` runs the project's test programs (`.edl` files under `tests/`)
+  with the direct interpreter and reports a pass/fail summary.
+- The package-manager design — resolution, `edl.lock`, the global `~/.edl/`
+  cache, no `node_modules` duplication — in [`specs/packages.md`](specs/packages.md),
+  decided in [ADR-0005](specs/decisions/ADR-0005-package-manifest.md).
+- Test categories: `packages/` (manifest unit tests) and end-to-end project
+  tests in `compiler/`. The suite now runs 386 checks (was 330).
+
 ### Changed
 
 - The repository now presents EDL as its official identity: renamed the root

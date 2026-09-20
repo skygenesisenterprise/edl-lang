@@ -26,6 +26,7 @@ edl/
 │   │   ├── ir.edl           the EDL intermediate representation
 │   │   ├── lowering.edl     typed AST -> IR
 │   │   ├── driver.edl       pipeline orchestration
+│   │   ├── project.edl      the edl.toml project layer: manifests, discovery, scaffold
 │   │   ├── backends/
 │   │   │   ├── backend.edl      backend interface (the replacement seam)
 │   │   │   └── bootstrapbackend.edl  bootstrap backend: EDL -> bootstrap -> C -> native
@@ -38,9 +39,9 @@ edl/
 └── tests/
     ├── framework.edl        tiny assertion framework (no macros)
     ├── runner.edl           runs every category
-    ├── lexer/ parser/ types/ errors/
+    ├── lexer/ parser/ types/ packages/
     ├── migrate/             bootstrap -> EDL, including round trips
-    └── compiler/            end-to-end: EDL source -> native binary
+    └── compiler/            end-to-end: EDL source -> native binary, projects
 ```
 
 Artifacts (generated Nim, object files, executables) never land in the tree: the
@@ -89,17 +90,20 @@ build/edl/edlc build     edl/examples/hello.edl -o hello
 build/edl/edlc run       edl/examples/hello.edl
 build/edl/edlc emit-nim  edl/examples/hello.edl     # inspect the bootstrap output
 build/edl/edlc migrate   edl/src/edl/source.edl    # translate the bootstrap dialect to EDL, with a report
+build/edl/edlc init my-project             # scaffold a project (edl.toml + src/main.edl)
+build/edl/edlc run                         # project mode: the manifest's entry point
+build/edl/edlc test                        # run the project's test programs
 ```
 
 `edl migrate` is how this tree stops being Nim. It reads the bootstrap dialect and
 writes EDL, and it reports every construct EDL has no equivalent for — so the
 state of the migration is a number rather than an impression. See
 [`../specs/migration.md`](../specs/migration.md), which also lists what each
-missing feature would unblock.
-
-`edl init`, `edl fmt`, `edl test`, `edl doc`, `edl add` and `edl remove` are part of
-the toolchain contract and report themselves as not implemented yet rather than
-silently doing nothing.
+missing feature would unblock.`edl fmt`, `edl doc`, `edl add` and `edl remove` are still part of the toolchain
+contract and report themselves as not implemented yet rather than silently
+doing nothing. The project layer — `edl.toml`, `edl init`, project mode and
+`edl test` — is implemented; its design is in
+[../specs/packages.md](../specs/packages.md).
 
 ## Why a Nim backend exists
 

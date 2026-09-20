@@ -4,7 +4,7 @@
 ## written, so the suite grows with the language:
 ##
 ##   lexer/ parser/ types/ generics/ modules/ errors/ memory/ concurrency/
-##   ffi/ compiler/ migrate/ runtime/ stdlib/ web/ database/
+##   ffi/ compiler/ migrate/ runtime/ stdlib/ packages/ web/ database/
 ##
 ## `edl/scripts/test.sh` compiles and runs this file. End-to-end tests receive
 ## the path of the compiler under test through the EDL_BIN environment variable.
@@ -14,7 +14,9 @@ import lexer/t_lexer
 import parser/t_parser
 import types/t_types
 import compiler/t_hello
+import compiler/t_project
 import migrate/t_migrate
+import packages/t_manifest
 
 proc main() =
   echo "EDL test suite"
@@ -22,7 +24,9 @@ proc main() =
   t_parser.run()
   t_types.run()
   t_hello.run()
+  t_project.run()
   t_migrate.run()
+  t_manifest.run()
   quit(report())
 
 main()

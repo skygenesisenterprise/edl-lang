@@ -1,0 +1,133 @@
+## Unit tests for the edl.toml project layer (edl/src/edl/project.edl).
+##
+## The manifest is parsed with a strict TOML subset: these tests pin the
+## accepted format, the defaults and the errors with their line numbers.
+## Project-level behaviour (init, project mode, edl test) is covered end to
+## end in compiler/t_project.edl through the real compiler binary.
+
+import std/os
+
+import edl/project
+
+import ../framework
+
+proc run*() =
+  beginSuite("packages (manifest)")
+
+  # ---- a complete manifest parses into every field ----
+  block:
+    let text = "[project]\n" &
+               "name = \"demo\"\n" &
+               "version = \"0.1.0\"\n" &
+               "edition = \"2027\"\n" &
+               "entry = \"src/app.edl\"\n" &
+               "\n" &
+               "[dependencies]\n" &
+               "http = \"1.0\"\n" &
+               "postgres = \">=1.2\"\n"
+    let m = parseManifestText(text, "edl.toml")
+    check(m.isValid(), "a complete manifest is valid")
+    checkEqStr(m.name, "demo", "the name is read")
+    checkEqStr(m.version, "0.1.0", "the version is read")
+    checkEqStr(m.edition, "2027", "the edition is read")
+    checkEqStr(m.entry, "src/app.edl", "the entry is read")
+    checkEqInt(m.deps.len, 2, "both dependencies are read")
+    if m.deps.len == 2:
+      checkEqStr(m.deps[0].name, "http", "the first dependency's name")
+      checkEqStr(m.deps[0].requirement, "1.0", "the first dependency's requirement")
+      checkEqStr(m.deps[1].name, "postgres", "dependencies keep their order")
+
+  # ---- defaults ----
+  block:
+    let m = parseManifestText("[project]\nname = \"tiny\"\n", "edl.toml")
+    check(m.isValid(), "a name-only manifest is valid")
+    checkEqStr(m.version, defaultVersion, "version has a default")
+    checkEqStr(m.edition, currentEdition, "edition has a default")
+    checkEqStr(m.entry, defaultEntry, "entry has a default")
+    checkEqInt(m.deps.len, 0, "dependencies are optional")
+
+  # ---- comments, blank lines and trailing comments ----
+  block:
+    let text = "# a comment\n\n[project] # section comment\nname = \"demo\" # trailing\n\n[dependencies]\n"
+    let m = parseManifestText(text, "edl.toml")
+    check(m.isValid(), "comments and blank lines are ignored")
+    checkEqStr(m.name, "demo", "a trailing comment does not enter the value")
+
+  # ---- unknown key, unknown section, missing name ----
+  block:
+    let m = parseManifestText("[project]\nname = \"demo\"\nnaem = \"typo\"\n", "edl.toml")
+    check(not m.isValid(), "an unknown key is an error, not a warning")
+    checkContains(m.renderErrors(), "edl.toml:3", "the error carries the line number")
+    checkContains(m.renderErrors(), "unknown key 'naem'", "the error names the key")
+
+  block:
+    let m = parseManifestText("[projects]\nname = \"demo\"\n", "edl.toml")
+    check(not m.isValid(), "an unknown section is an error")
+
+  block:
+    let m = parseManifestText("[dependencies]\nhttp = \"1.0\"\n", "edl.toml")
+    check(not m.isValid(), "a manifest without a name in [project] is invalid")
+
+  # ---- unquoted values, missing '=', duplicates ----
+  block:
+    let m = parseManifestText("[project]\nname = demo\n", "edl.toml")
+    check(not m.isValid(), "an unquoted value is an error")
+
+  block:
+    let m = parseManifestText("[project]\nname \"demo\"\n", "edl.toml")
+    check(not m.isValid(), "a key without '=' is an error")
+
+  block:
+    let m = parseManifestText("[project]\nname = \"a\"\nname = \"b\"\n", "edl.toml")
+    check(not m.isValid(), "a key set twice is an error")
+
+  block:
+    let m = parseManifestText(
+      "[project]\nname = \"a\"\n\n[dependencies]\nhttp = \"1\"\nhttp = \"2\"\n",
+      "edl.toml")
+    check(not m.isValid(), "a dependency listed twice is an error")
+
+  block:
+    let m = parseManifestText(
+      "[project]\nname = \"a\"\n\n[dependencies]\nhttp = \"\"\n", "edl.toml")
+    check(not m.isValid(), "an empty version requirement is an error")
+
+  # ---- escapes ----
+  block:
+    let m = parseManifestText("[project]\nname = \"a\\nb\"\n", "edl.toml")
+    check(m.isValid(), "known escapes are accepted")
+    checkEqStr(m.name, "a\nb", "the escape is processed")
+
+  block:
+    let m = parseManifestText("[project]\nname = \"a\\x\"\n", "edl.toml")
+    check(not m.isValid(), "unknown escapes are rejected")
+
+  # ---- the scaffold round-trips through the parser ----
+  block:
+    let m = parseManifestText(scaffoldManifest("my-proj"), "edl.toml")
+    check(m.isValid(), "the scaffolded manifest is valid")
+    checkEqStr(m.name, "my-proj", "the scaffolded name round-trips")
+    checkEqInt(m.deps.len, 0, "the scaffolded manifest starts without dependencies")
+
+  block:
+    check(validProjectName("my-proj"), "letters, digits and dashes are valid")
+    check(not validProjectName("a b"), "spaces are not")
+    check(not validProjectName("."), "a bare dot is not")
+    check(not validProjectName(""), "an empty name is not")
+
+  # ---- discovery walks up the tree ----
+  block:
+    let root = "build" / "edl" / "manifest-test"
+    let nested = root / "src" / "deep"
+    createDir(nested)
+    checkEqStr(loadManifest(nested).path, "",
+               "with no manifest above, found == false")
+    writeFile(root / "edl.toml", "[project]\nname = \"walker\"\n")
+    let found = findManifest(nested)
+    check(found.len > 0, "the manifest is found from a nested directory")
+    if found.len > 0:
+      let m = parseManifestFile(found)
+      checkEqStr(m.name, "walker", "the found manifest parses")
+      checkEqStr(m.entryFullPath(), root / defaultEntry,
+                 "the entry resolves against the project root")
+    removeDir("build" / "edl" / "manifest-test")

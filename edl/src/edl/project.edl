@@ -1,0 +1,272 @@
+## The EDL project layer: `edl.toml`.
+##
+## An EDL project is a directory with an `edl.toml` manifest. The manifest is
+## the developer's intent (the project's identity and its dependencies); a
+## lockfile, once dependencies are resolvable, will record what was actually
+## resolved. The format and the design are specified in specs/packages.md and
+## decided in specs/decisions/ADR-0005-package-manifest.md.
+##
+## The parser implements a strict subset of TOML: `[project]` and
+## `[dependencies]` tables, `key = "string"` pairs, comments and blank lines.
+## It is deliberately strict — an unknown key or section is an error, not a
+## warning — because a typo in a manifest must never be silently ignored. The
+## subset is valid TOML, so manifests stay portable if the parser grows.
+##
+## Errors carry the file name and line number and are plain strings: manifest
+## errors are configuration errors, not EDL source diagnostics. They never
+## enter the `Diagnostics` pipeline of the compiler.
+##
+## Bootstrap dialect: see specs/decisions/ADR-0001.
+
+import std/os
+import std/strutils
+
+const
+  manifestName* = "edl.toml"
+  defaultEntry* = "src/main.edl"          ## entry point when the manifest omits one
+  defaultVersion* = "0.0.0"               ## version when the manifest omits one
+  currentEdition* = "2027"                ## the edition the 0.1.x compiler series targets
+
+type
+  Dependency* = object
+    name*: string
+    requirement*: string ## the version requirement as written, unresolved
+
+  Manifest* = object
+    path*: string        ## the manifest file, as discovered
+    rootDir*: string     ## the directory containing the manifest
+    found*: bool         ## false when no manifest exists above the start directory
+    name*: string
+    version*: string
+    edition*: string
+    entry*: string       ## entry point relative to rootDir
+    deps*: seq[Dependency]
+    errors*: seq[string] ## "path:line: message"; empty when the manifest is valid
+
+proc unescape(inner: string, displayPath: string, lineno: int,
+              errors: var seq[string]): string =
+  ## Processes the escapes of a quoted string's contents.
+  var i = 0
+  while i < inner.len:
+    let ch = inner[i]
+    if ch == '\\':
+      if i + 1 >= inner.len:
+        result.add('\\')
+        inc i
+        continue
+      let nxt = inner[i + 1]
+      case nxt
+      of 'n': result.add('\n')
+      of 't': result.add('\t')
+      of '"': result.add('"')
+      of '\\': result.add('\\')
+      else:
+        errors.add(displayPath & ":" & $lineno &
+          ": unsupported escape '\\" & nxt & "' in a string value")
+        return ""
+      inc i
+    else:
+      result.add(ch)
+    inc i
+
+proc stringValue(raw: string, displayPath: string, lineno: int,
+                 errors: var seq[string]): string =
+  ## Reads a `"..."` value, allowing a trailing comment. Returns "" and reports
+  ## an error for anything else.
+  if raw.len == 0 or raw[0] != '"':
+    errors.add(displayPath & ":" & $lineno &
+      ": expected a double-quoted string, found '" & raw & "'")
+    return ""
+  # find the closing quote, escapes included
+  var close = -1
+  var i = 1
+  while i < raw.len:
+    if raw[i] == '\\':
+      inc i
+    elif raw[i] == '"':
+      close = i
+      break
+    inc i
+  if close < 0:
+    errors.add(displayPath & ":" & $lineno & ": missing the closing double quote")
+    return ""
+  let rest = strip(raw.substr(close + 1))
+  if rest.len > 0 and rest[0] != '#':
+    errors.add(displayPath & ":" & $lineno &
+      ": unexpected text after the string value: '" & rest & "'")
+    return ""
+  result = unescape(raw.substr(1, close - 1), displayPath, lineno, errors)
+
+proc parseManifestText*(text, displayPath: string): Manifest =
+  ## Parses manifest text. Never raises: problems are collected in `errors`.
+  result = Manifest(path: displayPath, rootDir: parentDir(displayPath),
+                    found: true, name: "", version: defaultVersion,
+                    edition: currentEdition, entry: defaultEntry,
+                    deps: @[], errors: @[])
+
+  var section = ""
+  var setName = false
+  var setVersion = false
+  var setEdition = false
+  var setEntry = false
+  var lineno = 0
+  for rawLine in splitLines(text):
+    inc lineno
+    let line = strip(rawLine)
+    if line.len == 0 or line[0] == '#':
+      continue
+
+    if line[0] == '[':
+      # a section header may carry a trailing comment
+      var header = line
+      let hash = find(line, '#')
+      if hash >= 0:
+        header = strip(line.substr(0, hash - 1))
+      if header == "[project]":
+        section = "project"
+      elif header == "[dependencies]":
+        section = "dependencies"
+      else:
+        result.errors.add(displayPath & ":" & $lineno & ": unknown section '" &
+          header & "' (expected [project] or [dependencies])")
+      continue
+
+    if section.len == 0:
+      result.errors.add(displayPath & ":" & $lineno &
+        ": this key is outside any section (start the file with [project])")
+      continue
+
+    let eq = find(line, '=')
+    if eq < 1:
+      result.errors.add(displayPath & ":" & $lineno & ": expected 'key = value'")
+      continue
+    let key = strip(line.substr(0, eq - 1))
+    let rawValue = strip(line.substr(eq + 1))
+    if key.len == 0:
+      result.errors.add(displayPath & ":" & $lineno & ": empty key")
+      continue
+
+    if section == "project":
+      case key
+      of "name":
+        if setName:
+          result.errors.add(displayPath & ":" & $lineno & ": 'name' is set twice")
+        result.name = stringValue(rawValue, displayPath, lineno, result.errors)
+        setName = true
+      of "version":
+        if setVersion:
+          result.errors.add(displayPath & ":" & $lineno & ": 'version' is set twice")
+        result.version = stringValue(rawValue, displayPath, lineno, result.errors)
+        setVersion = true
+      of "edition":
+        if setEdition:
+          result.errors.add(displayPath & ":" & $lineno & ": 'edition' is set twice")
+        result.edition = stringValue(rawValue, displayPath, lineno, result.errors)
+        setEdition = true
+      of "entry":
+        if setEntry:
+          result.errors.add(displayPath & ":" & $lineno & ": 'entry' is set twice")
+        result.entry = stringValue(rawValue, displayPath, lineno, result.errors)
+        setEntry = true
+      else:
+        result.errors.add(displayPath & ":" & $lineno & ": unknown key '" & key &
+          "' in [project] (expected name, version, edition or entry)")
+    else:
+      # [dependencies]: the key is the dependency's name, the value its
+      # version requirement, stored verbatim until a resolver exists.
+      var duplicate = false
+      for dep in result.deps:
+        if dep.name == key:
+          duplicate = true
+          break
+      if duplicate:
+        result.errors.add(displayPath & ":" & $lineno & ": dependency '" & key &
+          "' is listed twice")
+        continue
+      let errCount = result.errors.len
+      let req = stringValue(rawValue, displayPath, lineno, result.errors)
+      if req.len == 0 and result.errors.len == errCount:
+        # a valid but empty string: the requirement itself is missing
+        result.errors.add(displayPath & ":" & $lineno & ": dependency '" & key &
+          "' needs a version requirement")
+      result.deps.add(Dependency(name: key, requirement: req))
+
+  if result.name.len == 0:
+    result.errors.add(displayPath & ": the manifest has no 'name' in [project]")
+
+proc parseManifestFile*(path: string): Manifest =
+  ## Reads and parses `edl.toml` at `path`.
+  var text = ""
+  try:
+    text = readFile(path)
+  except IOError, OSError:
+    result = Manifest(path: path, rootDir: parentDir(path), found: true,
+                      name: "", version: defaultVersion, edition: currentEdition,
+                      entry: defaultEntry, deps: @[], errors: @[])
+    result.errors.add(path & ": cannot read the manifest")
+    return
+  result = parseManifestText(text, path)
+
+proc findManifest*(startDir: string): string =
+  ## Returns the path of the nearest `edl.toml` in `startDir` or its ancestors,
+  ## or "" when there is none.
+  var dir = if startDir.len == 0: getCurrentDir() else: startDir
+  while true:
+    let candidate = dir / manifestName
+    if fileExists(candidate):
+      return candidate
+    let parent = parentDir(dir)
+    if parent == dir:
+      return ""
+    dir = parent
+
+proc loadManifest*(startDir: string): Manifest =
+  ## Finds and parses the manifest above `startDir`. When none exists, returns
+  ## a manifest with `found == false` and no errors.
+  let path = findManifest(startDir)
+  if path.len == 0:
+    result = Manifest(path: "", rootDir: "", found: false, name: "",
+                      version: defaultVersion, edition: currentEdition,
+                      entry: defaultEntry, deps: @[], errors: @[])
+  else:
+    result = parseManifestFile(path)
+
+proc entryFullPath*(m: Manifest): string =
+  ## The entry point, relative to the project root.
+  m.rootDir / m.entry
+
+proc isValid*(m: Manifest): bool =
+  m.errors.len == 0
+
+proc renderErrors*(m: Manifest): string =
+  ## The manifest's errors, one indented line each.
+  for err in m.errors:
+    if result.len > 0:
+      result.add("\n")
+    result.add("  " & err)
+
+proc validProjectName*(name: string): bool =
+  ## Project names become directories and manifest values: letters, digits,
+  ## '-', '_' and '.', never just a dot.
+  if name.len == 0 or name == "." or name == "..":
+    return false
+  for ch in name:
+    if not ((ch >= 'a' and ch <= 'z') or (ch >= 'A' and ch <= 'Z') or
+            (ch >= '0' and ch <= '9') or ch == '-' or ch == '_' or ch == '.'):
+      return false
+  true
+
+proc scaffoldManifest*(name: string): string =
+  ## The `edl.toml` written by `edl init`.
+  result = "[project]\n"
+  result.add("name = \"" & name & "\"\n")
+  result.add("version = \"0.1.0\"\n")
+  result.add("edition = \"" & currentEdition & "\"\n")
+  result.add("\n")
+  result.add("[dependencies]\n")
+
+proc scaffoldMainSource*(name: string): string =
+  ## The entry point written by `edl init`.
+  result = "fn main() {\n"
+  result.add("    print(\"Hello from " & name & "\")\n")
+  result.add("}\n")

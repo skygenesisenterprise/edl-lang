@@ -8,12 +8,19 @@
 ##   edlc emit-nim  <file.edl>          stop after emitting backend source
 ##   edlc emit-ast  <file.edl>          print the parsed syntax tree
 ##   edlc migrate   <file.edl>          translate bootstrap-dialect source to EDL, with a report
+##   edlc init      [name]              scaffold a project: edl.toml + src/main.edl
+##   edlc test      [paths...]          run the project's test programs (direct interpreter)
 ##   edlc version
 ##   edlc help
 ##
-## `init`, `fmt`, `test`, `doc`, `add` and `remove` are part of the toolchain
-## contract and report themselves as not implemented yet rather than pretending
-## to work or silently doing nothing.
+## check, build, run, emit-nim and emit-ast also work in **project mode**:
+## without a file argument they compile the entry point of the nearest
+## `edl.toml`, found by walking up from the current directory. The manifest
+## format and the dependency design are in specs/packages.md.
+##
+## `fmt`, `doc`, `add` and `remove` are still part of the toolchain contract
+## and report themselves as not implemented yet rather than pretending to work
+## or silently doing nothing.
 ##
 ## Exit codes: 0 success, 1 compilation error, 2 usage error or unimplemented
 ## command, otherwise the exit code of the program that was run.
@@ -21,10 +28,12 @@
 ## Bootstrap dialect: see specs/decisions/ADR-0001.
 
 import std/os
+import std/strutils
 
 import edl/diagnostics
 import edl/driver
 import edl/migrate/translate
+import edl/project
 
 const edlVersion = "0.1.0"
 
@@ -40,9 +49,15 @@ proc printUsage() =
   echo "  emit-nim  stop after emitting the bootstrap backend source"
   echo "  emit-ast  print the parsed syntax tree"
   echo "  migrate   translate a bootstrap-dialect source file to EDL and report what could not be"
+  echo "  init      scaffold a new project (edl.toml and src/main.edl)"
+  echo "  test      run the project's test programs with the direct interpreter"
   echo "  version   print the compiler version"
   echo "  help      print this message"
-  echo "  init, fmt, test, doc, add, remove   not implemented yet"
+  echo "  fmt, doc, add, remove   not implemented yet"
+  echo ""
+  echo "project mode"
+  echo "  without a file argument, check/build/run/emit-* compile the entry point of"
+  echo "  the nearest edl.toml, walking up from the current directory"
   echo ""
   echo "options"
   echo "  -o <path>        output executable path"
@@ -100,7 +115,20 @@ proc runCompileCommand(command: string, args: seq[string]): int =
     inc i
 
   if inputPath.len == 0:
-    return usageError("'" & command & "' needs an input file")
+    # project mode: the entry point of the nearest edl.toml
+    let manifest = loadManifest(getCurrentDir())
+    if not manifest.found:
+      return usageError("'" & command & "' needs an input file (or an edl.toml project; run 'edl init' to create one)")
+    if not manifest.isValid():
+      echo "edl: invalid " & manifest.path & ":"
+      echo renderErrors(manifest)
+      return 1
+    let entry = entryFullPath(manifest)
+    if not fileExists(entry):
+      echo "edl: the manifest's entry point '" & manifest.entry & "' does not exist"
+      echo "     expected: " & entry
+      return 1
+    inputPath = entry
 
   opts.inputPath = inputPath
   if command == "check" or command == "emit-nim" or command == "emit-ast":
@@ -151,6 +179,166 @@ proc runCompileCommand(command: string, args: seq[string]): int =
     else:
       echo r.exePath
       0
+
+proc runInitCommand(args: seq[string]): int =
+  ## `edl init` scaffolds a project: an edl.toml manifest and an entry point.
+  ## It never overwrites: an existing project is a clean error, not a clobber.
+  var name = ""
+  var i = 1
+  while i < args.len:
+    let arg = args[i]
+    if arg.len > 0 and arg[0] == '-':
+      return usageError("unknown option '" & arg & "'")
+    if name.len > 0:
+      return usageError("only one project name is supported")
+    name = arg
+    inc i
+
+  let cwd = getCurrentDir()
+  var dir = cwd
+  if name.len == 0:
+    name = lastPathPart(cwd)
+    if name.len == 0:
+      return usageError("cannot derive a project name from this directory; pass one: edl init <name>")
+  else:
+    dir = cwd / name
+
+  if not validProjectName(name):
+    echo "edl: '" & name & "' is not a valid project name"
+    echo "     use letters, digits, '-', '_' or '.'"
+    return 2
+
+  let manifestPath = dir / "edl.toml"
+  let mainPath = dir / "src" / "main.edl"
+  var conflicts = ""
+  if fileExists(manifestPath):
+    conflicts = manifestPath
+  if fileExists(mainPath):
+    if conflicts.len > 0:
+      conflicts = conflicts & " and " & mainPath
+    else:
+      conflicts = mainPath
+  if conflicts.len > 0:
+    echo "edl: refusing to overwrite an existing project: " & conflicts
+    return 1
+
+  try:
+    createDir(dir / "src")
+  except OSError:
+    echo "edl: cannot create '" & (dir / "src") & "'"
+    return 1
+  try:
+    writeFile(manifestPath, scaffoldManifest(name))
+    writeFile(mainPath, scaffoldMainSource(name))
+  except IOError, OSError:
+    echo "edl: cannot write the project files"
+    return 1
+
+  echo "edl init: created an EDL project in " & dir
+  echo "  " & manifestPath
+  echo "  " & mainPath
+  if dir != cwd:
+    echo ""
+    echo "next:"
+    echo "  cd " & name
+    echo "  edl run"
+  else:
+    echo ""
+    echo "next: edl run"
+  result = 0
+
+proc collectEdlFiles(path: string, files: var seq[string]) =
+  ## Collects .edl files: a file goes in directly, a directory is walked
+  ## recursively. The caller sorts for a deterministic order.
+  if fileExists(path):
+    if path.endsWith(".edl"):
+      files.add(path)
+    else:
+      echo "edl test: skipping '" & path & "' (not a .edl file)"
+  elif dirExists(path):
+    for entry in walkDir(path):
+      if entry.kind == pcDir or entry.kind == pcLinkToDir:
+        collectEdlFiles(entry.path, files)
+      elif entry.kind == pcFile and entry.path.endsWith(".edl"):
+        files.add(entry.path)
+  else:
+    echo "edl test: no such file or directory: " & path
+
+proc sortPaths(paths: var seq[string]) =
+  ## Insertion sort: small inputs, deterministic order, no generics at the
+  ## call site (ADR-0001).
+  var i = 1
+  while i < paths.len:
+    let item = paths[i]
+    var j = i - 1
+    while j >= 0 and paths[j] > item:
+      paths[j + 1] = paths[j]
+      dec j
+    paths[j + 1] = item
+    inc i
+
+proc runTestCommand(args: seq[string]): int =
+  ## `edl test` runs the project's test programs with the direct interpreter:
+  ## every test file is an EDL program with a main, and exit code 0 is a pass.
+  ## No bootstrap compiler and no build artifacts are involved, so `edl test`
+  ## works wherever `edl run` works.
+  var targets: seq[string] = @[]
+  var i = 1
+  while i < args.len:
+    let arg = args[i]
+    if arg.len > 0 and arg[0] == '-':
+      return usageError("unknown option '" & arg & "'")
+    targets.add(arg)
+    inc i
+
+  let cwd = getCurrentDir()
+  var root = cwd
+  let manifest = loadManifest(cwd)
+  if manifest.found:
+    if not manifest.isValid():
+      echo "edl: invalid " & manifest.path & ":"
+      echo renderErrors(manifest)
+      return 1
+    root = manifest.rootDir
+
+  if targets.len == 0:
+    let testsDir = root / "tests"
+    if dirExists(testsDir):
+      targets.add(testsDir)
+
+  var files: seq[string] = @[]
+  for target in targets:
+    collectEdlFiles(target, files)
+  sortPaths(files)
+
+  if files.len == 0:
+    echo "edl test: no test files found"
+    echo "     test files are .edl programs under the project's tests/ directory"
+    return 0
+
+  var passed = 0
+  var failed = 0
+  for file in files:
+    var opts = CompileOptions()
+    opts.inputPath = file
+    opts.interpret = true
+    let r = compileFile(opts)
+    if r.ok and r.exitCode == 0:
+      inc passed
+    else:
+      inc failed
+      echo ""
+      echo "FAIL " & file
+      showDiagnostics(r.diags)
+      if r.toolOutput.len > 0:
+        echo r.toolOutput
+
+  echo ""
+  echo "edl test: " & $passed & " passed, " & $failed & " failed (" & $files.len & " total)"
+  if failed > 0:
+    result = 1
+  else:
+    result = 0
 
 proc runMigrateCommand(args: seq[string]): int =
   ## `edl migrate` reads bootstrap-dialect source and writes EDL. The report is
@@ -226,10 +414,14 @@ proc main(): int =
     runCompileCommand(command, args)
   of "migrate":
     runMigrateCommand(args)
-  of "init", "fmt", "test", "doc", "add", "remove":
+  of "init":
+    runInitCommand(args)
+  of "test":
+    runTestCommand(args)
+  of "fmt", "doc", "add", "remove":
     echo "edl: '" & command & "' is not implemented yet."
     echo "     The toolchain contract is defined in specs/compiler.md;"
-    echo "     this command arrives with the toolchain phase."
+    echo "     'add' and 'remove' are designed in specs/packages.md."
     2
   else:
     echo "edl: unknown command '" & command & "'"

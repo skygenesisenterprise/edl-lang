@@ -1,0 +1,72 @@
+## End-to-end tests for the project layer: `edl init`, project mode and
+## `edl test`, exercised through the real compiler binary (EDL_BIN, set by
+## edl/scripts/test.sh). Everything runs in build/edl/e2e/, which is ignored.
+
+import std/os
+import std/osproc
+
+import ../framework
+
+const outRoot = "build/edl/e2e"
+
+proc run*() =
+  beginSuite("compiler (project)")
+
+  let edlc = getEnv("EDL_BIN")
+  if edlc.len == 0:
+    check(true, "EDL_BIN not set: skipping the project e2e tests")
+    return
+
+  let projDir = outRoot / "init-proj"
+  createDir(outRoot)
+  if dirExists(projDir):
+    removeDir(projDir)
+
+  # ---- edl init scaffolds a runnable project ----
+  block:
+    let created = execCmdEx(edlc & " init init-proj", workingDir = outRoot)
+    checkEqInt(created.exitCode, 0, "edl init exits successfully")
+    check(fileExists(projDir / "edl.toml"), "the manifest is scaffolded")
+    check(fileExists(projDir / "src" / "main.edl"), "the entry point is scaffolded")
+    let manifest = readFile(projDir / "edl.toml")
+    checkContains(manifest, "name = \"init-proj\"", "the manifest carries the project name")
+
+  # ---- project mode: edl run without a file argument ----
+  block:
+    let ran = execCmdEx(edlc & " run", workingDir = projDir)
+    checkEqInt(ran.exitCode, 0, "edl run works in project mode")
+    checkEqStr(ran.output, "Hello from init-proj\n", "the scaffolded program runs")
+
+  # ---- init never overwrites ----
+  block:
+    let again = execCmdEx(edlc & " init", workingDir = projDir)
+    check(again.exitCode != 0, "edl init refuses to overwrite an existing project")
+    checkContains(again.output, "refusing to overwrite", "the refusal is explained")
+
+  # ---- edl init derives the name from the current directory ----
+  block:
+    let inPlace = outRoot / "in-place"
+    createDir(inPlace)
+    let made = execCmdEx(edlc & " init", workingDir = inPlace)
+    checkEqInt(made.exitCode, 0, "edl init without a name works in a directory")
+    check(fileExists(inPlace / "edl.toml"), "the manifest lands in the current directory")
+    let ran = execCmdEx(edlc & " run", workingDir = inPlace)
+    checkEqStr(ran.output, "Hello from in-place\n", "the derived name is used")
+    removeDir(inPlace)
+
+  # ---- edl test counts passes and failures ----
+  block:
+    createDir(projDir / "tests")
+    writeFile(projDir / "tests" / "t_good.edl", "fn main() { print(\"ok\") }")
+    writeFile(projDir / "tests" / "t_bad.edl", "fn main() { let x: i32 = \"s\" }")
+    let tested = execCmdEx(edlc & " test", workingDir = projDir)
+    checkEqInt(tested.exitCode, 1, "a failing test makes edl test fail")
+    checkContains(tested.output, "1 passed", "the passing test is counted")
+    checkContains(tested.output, "1 failed", "the failing test is counted")
+
+    writeFile(projDir / "tests" / "t_bad.edl", "fn main() { print(\"fixed\") }")
+    let fixed = execCmdEx(edlc & " test", workingDir = projDir)
+    checkEqInt(fixed.exitCode, 0, "a fixed suite passes")
+    checkContains(fixed.output, "2 passed", "both tests are counted")
+
+  removeDir(projDir)

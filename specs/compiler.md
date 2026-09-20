@@ -95,10 +95,19 @@ edl run       <file.edl>    build, then run.
 edl emit-nim  <file.edl>    stop after the backend source is written.
 edl emit-ast  <file.edl>    print the parsed tree.
 edl migrate   <file.edl>    translate a bootstrap-dialect source file to EDL, with a report.
+edl init      [name]        scaffold a project: edl.toml and src/main.edl.
+edl test      [paths...]    run the project's test programs with the interpreter.
 edl version
 edl help
-edl init | fmt | test | doc | add | remove    declared, not implemented yet
+edl fmt | doc | add | remove    declared, not implemented yet
 ```
+
+`check`, `build`, `run`, `emit-nim` and `emit-ast` also work in **project
+mode**: without a file argument they compile the entry point of the nearest
+`edl.toml`, found by walking up from the current directory. The manifest
+format, the project layer and the package design are in
+[packages.md](packages.md), decided in
+[ADR-0005](decisions/ADR-0005-package-manifest.md).
 
 `edl migrate` is not part of the language: it is the tool that brings the
 bootstrap toolchain over to EDL, file by file. It reads the Nim bootstrap dialect
@@ -182,8 +191,9 @@ category in `edl/tests/`:
 | `lexer/` | tokens, literals, positions, lexical diagnostics |
 | `parser/` | tree shape for every construct, error recovery, negative cases |
 | `types/` | type table invariants, inference, every typing rule by code |
-| `compiler/` | end to end: write a program, build it, run it, compare its output |
+| `compiler/` | end to end: write a program, build it, run it, compare its output; the project commands (`init`, project mode, `test`) through the real binary |
 | `migrate/` | Nim -> EDL translation, the report, and round trips through the compiler |
+| `packages/` | the `edl.toml` project layer: manifest parsing, defaults, errors, discovery |
 
 End-to-end tests are the ones that matter most: they are what makes "EDL compiles"
 a fact rather than a claim. `edl/scripts/test.sh` passes the compiler binary to

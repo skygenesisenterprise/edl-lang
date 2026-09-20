@@ -98,6 +98,34 @@ build/edl/edlc emit-ast test.edl           # show the parsed tree
 edl/scripts/test.sh                        # the whole test suite
 ```
 
+## Projects
+
+A project is a directory with an `edl.toml` manifest. `edl init` scaffolds
+one, and every compile command understands it — no file argument means the
+manifest's entry point:
+
+```sh
+build/edl/edlc init hello-world
+cd hello-world
+build/edl/edlc run        # compiles and runs src/main.edl from the manifest
+build/edl/edlc test       # runs every program under tests/
+```
+
+```toml
+[project]
+name = "hello-world"
+version = "0.1.0"
+edition = "2027"
+
+[dependencies]
+```
+
+The manifest is the developer's intent; the resolution that will turn it into
+an `edl.lock` is designed but not implemented yet — there is no registry to
+resolve against. The format, the project mode and the package design are in
+[`specs/packages.md`](specs/packages.md), decided in
+[ADR-0005](specs/decisions/ADR-0005-package-manifest.md).
+
 ## Coming from Nim
 
 The Nim substrate is not going to be rewritten by hand, and it is not going to be
@@ -180,7 +208,8 @@ registered in [`specs/bootstrap-references.md`](specs/bootstrap-references.md).
 | Interpreter | **working** — `edl run` executes the IR directly, no external compiler (`interp.edl`) |
 | Native backend | **working, transitional** — `edl build` lowers to Nim, then C, then a native binary |
 | Programs that run | **working** — see [Try it now](#try-it-now) |
-| Toolchain | **partial** — `check`, `build`, `run`, `emit-nim`, `emit-ast`, `migrate` work; `init`, `fmt`, `test`, `doc`, `add`, `remove` are declared but not implemented |
+| Toolchain | **partial** — `check`, `build`, `run`, `emit-nim`, `emit-ast`, `migrate`, `init`, `test` work; `fmt`, `doc`, `add`, `remove` are declared but not implemented |
+| Projects (`edl.toml`, project mode) | **working** — `edl init`, dependency-free manifests, `edl test`; resolution and lockfile are designed in [`specs/packages.md`](specs/packages.md) |
 | Test suite | **working** — 330 checks, `edl/scripts/test.sh` |
 | Nim → EDL migration | **working and measured** — `edl migrate`, see [`specs/migration.md`](specs/migration.md) |
 | Standard library in EDL | planned — `print` is temporarily a compiler builtin |
