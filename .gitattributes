@@ -1,28 +1,81 @@
 # Avoids changelog conflicts by assuming additions-only, which is by far the common case.
+
 # In the rare case where branch b1 rebases against branch b2 and both branches
+
 # modified the same changelog entry, you'll end up with that changelog entry
+
 # duplicated, which is easily identifiable and fixable.
+
 /changelog.md merge=union
 
-# Shell scripts and bootstrap config files must stay LF on every platform (WSL CRLF bug).
+# ------------------------------------------------------------------
+
+# Line endings
+
+# ------------------------------------------------------------------
+
+# Shell scripts and bootstrap configuration files must stay LF on every
+
+# platform, including Windows/WSL environments.
+
+/*.sh text eol=lf
 *.sh text eol=lf
 /config/build_config.txt text eol=lf
 
 # ------------------------------------------------------------------
-# GitHub Linguist
+
+# GitHub Linguist — EDL
+
 # ------------------------------------------------------------------
-# Classify .edl as EDL rather than any other language. Full recognition
-# requires EDL to be registered in github-linguist/linguist (see
-# integrations/github/linguist/); until then this override expresses intent
-# and keeps .edl from being mislabelled.
+
+# Explicitly classify every .edl source file as EDL.
+
+#
+
+# This is a repository-level Linguist override. It prevents .edl files
+
+# from being classified as another language when automatic detection is
+
+# unavailable or ambiguous.
+
+#
+
+# EDL must still be registered in GitHub Linguist's language database for
+
+# GitHub to fully recognize EDL as a language.
+
 *.edl linguist-language=EDL
 
-# The repository is built on a temporary Nim bootstrap substrate. Hide the
-# substrate from GitHub's language statistics so the repository is not
-# presented as a "Nim" project. These attributes affect only GitHub's
-# language graph / code search; they have no effect on git, CI or the build.
-# The substrate disappears entirely once `edl build` compiles the compiler
-# itself (specs/architecture.md).
+# ------------------------------------------------------------------
+
+# GitHub Linguist — Bootstrap substrate
+
+# ------------------------------------------------------------------
+
+# The compiler is currently being migrated from a Nim-derived bootstrap
+
+# substrate to native EDL.
+
+#
+
+# Nim sources are transitional implementation details and should not make
+
+# the repository appear to be primarily a Nim project in GitHub's language
+
+# statistics.
+
+#
+
+# These attributes affect GitHub Linguist classification only. They do not
+
+# affect Git, the compiler, CI, builds, or the actual source files.
+
+# ------------------------------------------------------------------
+
+# Bootstrap directories
+
+# ------------------------------------------------------------------
+
 /compiler/** linguist-vendored
 /lib/** linguist-vendored
 /tools/** linguist-vendored
@@ -37,10 +90,14 @@
 /ci/** linguist-vendored
 /icons/** linguist-vendored
 /csources_v3/** linguist-vendored
-/tests/** linguist-vendored
 /tests_disabled/** linguist-vendored
 
-# Root bootstrap files.
+# ------------------------------------------------------------------
+
+# Bootstrap files
+
+# ------------------------------------------------------------------
+
 /koch.nim linguist-vendored
 /koch.nim.cfg linguist-vendored
 /nim.nimble linguist-vendored
@@ -48,11 +105,49 @@
 /build_all.bat linguist-vendored
 /azure-pipelines.yml linguist-vendored
 
-# Any remaining bootstrap-dialect sources (including the EDL toolchain, which
-# is currently written in the bootstrap dialect). These are transitional and
-# become .edl as the migration progresses.
+# ------------------------------------------------------------------
+
+# Nim bootstrap sources
+
+# ------------------------------------------------------------------
+
+# Any remaining Nim-family source files are transitional bootstrap code.
+
+/*.nim linguist-vendored
 *.nim linguist-vendored
 *.nims linguist-vendored
-*.nimble* linguist-vendored
+*.nimble linguist-vendored
+*.nimble.* linguist-vendored
 *.nimf linguist-vendored
 *.nim.cfg linguist-vendored
+
+# ------------------------------------------------------------------
+
+# Bootstrap metadata / generated files
+
+# ------------------------------------------------------------------
+
+# Nim compiler/cache artifacts should not contribute to language statistics.
+
+nimcache/** linguist-generated
+.nimble/** linguist-generated
+
+# ------------------------------------------------------------------
+
+# Future EDL migration
+
+# ------------------------------------------------------------------
+
+# Do not mark .edl files as vendored.
+
+#
+
+# EDL sources remain first-class project sources throughout the migration,
+
+# including EDL files located under compiler/, tools/, tests/, etc.
+
+#
+
+# The explicit linguist-language=EDL rule above therefore remains the
+
+# authoritative repository-level classification for EDL sources.
