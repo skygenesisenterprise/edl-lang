@@ -72,28 +72,6 @@
 
 # ------------------------------------------------------------------
 
-# Bootstrap directories
-
-# ------------------------------------------------------------------
-
-/compiler/** linguist-vendored
-/lib/** linguist-vendored
-/tools/** linguist-vendored
-/testament/** linguist-vendored
-/lsp/** linguist-vendored
-/formatter/** linguist-vendored
-/analyzer/** linguist-vendored
-/docgen/** linguist-vendored
-/config/** linguist-vendored
-/doc/** linguist-vendored
-/changelogs/** linguist-vendored
-/ci/** linguist-vendored
-/icons/** linguist-vendored
-/csources_v3/** linguist-vendored
-/tests_disabled/** linguist-vendored
-
-# ------------------------------------------------------------------
-
 # Bootstrap files
 
 # ------------------------------------------------------------------
