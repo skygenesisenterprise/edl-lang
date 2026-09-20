@@ -1,138 +1,283 @@
-# ------------------------------------------------------------------
+# ============================================================================
 
-# Git attributes
+# EDL — Git attributes
 
-# ------------------------------------------------------------------
+# ============================================================================
 
-# Changelog additions should merge cleanly when possible.
+#
+
+# This file defines repository-level Git attributes used by GitHub Linguist,
+
+# line-ending normalization, and generated/bootstrap source classification.
+
+#
+
+# Main principle:
+
+# - Every *.edl file is first-class EDL source code.
+
+# - EDL source must remain visible in GitHub language statistics.
+
+# - Transitional bootstrap sources and generated artifacts must not distort
+
+# the project's language statistics.
+
+#
+
+# ============================================================================
+
+# ============================================================================
+
+# Changelog
+
+# ============================================================================
 
 /changelog.md merge=union
 
-# ------------------------------------------------------------------
+# ============================================================================
 
 # Line endings
 
-# ------------------------------------------------------------------
+# ============================================================================
 
-# Shell and bootstrap configuration files must remain LF.
+# Shell scripts must always use LF.
 
 *.sh text eol=lf
+
+# Build configuration must always use LF.
+
 /config/build_config.txt text eol=lf
 
-# ------------------------------------------------------------------
+# ============================================================================
 
 # GitHub Linguist — EDL
 
-# ------------------------------------------------------------------
-
-# EDL is the project's primary source language.
+# ============================================================================
 
 #
 
-# Keep every .edl file detectable, including sources under:
-
-# - edl/
-
-# - compiler/
-
-# - tools/
-
-# - tests/
-
-# - packages/
-
-# - future directories
+# Every .edl file in the repository is EDL source code.
 
 #
 
-# This override is useful once EDL is known by GitHub Linguist.
+# This intentionally applies recursively to the entire repository:
+
+#
+
+# compiler/**/*.edl
+
+# edl/**/*.edl
+
+# tests/**/*.edl
+
+# examples/**/*.edl
+
+# tools/**/*.edl
+
+# *.edl
+
+#
+
+# Do NOT mark EDL directories as vendored or generated.
+
+#
+
+# ============================================================================
 
 *.edl linguist-language=EDL
 
-# ------------------------------------------------------------------
+# ============================================================================
 
-# GitHub Linguist — Nim bootstrap substrate
+# GitHub Linguist — Transitional bootstrap
 
-# ------------------------------------------------------------------
+# ============================================================================
 
-# The repository still contains a large Nim-derived bootstrap substrate.
+#
 
-# These files are transitional implementation infrastructure and should
+# The repository is progressively migrating away from the original bootstrap
 
-# not dominate the repository language statistics.
+# implementation. These files are implementation infrastructure rather than
 
-# Nim source files.
+# EDL source code and therefore should not dominate the language statistics.
+
+#
+
+# These attributes affect Linguist classification only.
+
+# They do not remove files from Git and do not affect compilation.
+
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+
+# Nim source
+
+# ----------------------------------------------------------------------------
+
+#
+
+# Any remaining Nim source is transitional bootstrap code.
+
+#
 
 *.nim linguist-vendored
 *.nims linguist-vendored
 *.nimf linguist-vendored
-
-# Nim package / project metadata.
-
 *.nimble linguist-vendored
 *.nimble.* linguist-vendored
-
-# Nim configuration files.
-
 *.nim.cfg linguist-vendored
 
-# ------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 
-# Explicit bootstrap files
+# Bootstrap build files
 
-# ------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 
-# These files are part of the legacy bootstrap/build infrastructure.
-
-/nim.nimble linguist-vendored
 /koch.nim linguist-vendored
 /koch.nim.cfg linguist-vendored
 
-# Legacy bootstrap build scripts.
-
 /build_all.sh linguist-vendored
 /build_all.bat linguist-vendored
+
+/nim.nimble linguist-vendored
+
 /azure-pipelines.yml linguist-vendored
 
-# ------------------------------------------------------------------
+# ============================================================================
 
-# Bootstrap-generated / machine-generated content
+# Generated / cache files
 
-# ------------------------------------------------------------------
-
-# Only use these overrides if these directories are actually tracked
-
-# and contain generated artifacts.
-
-/nimcache/** linguist-generated
-/.nimble/** linguist-generated
-
-# ------------------------------------------------------------------
-
-# Important policy
-
-# ------------------------------------------------------------------
-
-# Do NOT mark compiler/, tools/, lsp/, formatter/, analyzer/,
-
-# docgen/, tests/, or other project directories as vendored.
+# ============================================================================
 
 #
 
-# Those directories may contain EDL code during the migration and
+# Generated compiler artifacts and dependency caches must not contribute to
 
-# must remain first-class project sources.
+# GitHub language statistics.
+
+# ============================================================================
+
+nimcache/** linguist-generated
+.nimble/** linguist-generated
+
+# Generic build output directories.
+
+/build/** linguist-generated
+/dist/** linguist-generated
+/out/** linguist-generated
+/target/** linguist-generated
+
+# ============================================================================
+
+# Generated documentation / website artifacts
+
+# ============================================================================
 
 #
 
-# The migration is file-based:
+# Only use these rules for files that are actually generated.
+
+# Hand-written EDL documentation should remain detectable normally.
+
+# ============================================================================
+
+# Common generated documentation output.
+
+/site/_build/** linguist-generated
+/docs/_build/** linguist-generated
+
+# ============================================================================
+
+# Vendored third-party sources
+
+# ============================================================================
 
 #
 
-# *.edl  -> EDL
-
-# *.nim  -> transitional Nim bootstrap
+# Third-party source code should not influence the project's language graph.
 
 #
 
-# rather than directory-based.
+# Keep this section limited to directories that actually contain vendored
+
+# dependencies. Do not apply it to EDL source directories.
+
+# ============================================================================
+
+/vendor/** linguist-vendored
+/third_party/** linguist-vendored
+/extern/** linguist-vendored
+
+# ============================================================================
+
+# Generated assets
+
+# ============================================================================
+
+#
+
+# Large generated assets can otherwise distort GitHub's language statistics.
+
+# ============================================================================
+
+*.min.js linguist-generated
+*.min.css linguist-generated
+*.map linguist-generated
+
+# ============================================================================
+
+# EDL source policy
+
+# ============================================================================
+
+#
+
+# IMPORTANT:
+
+#
+
+# EDL source remains first-class source code regardless of its directory.
+
+#
+
+# Examples:
+
+#
+
+# compiler/frontend.edl       -> EDL
+
+# compiler/parser/parser.edl  -> EDL
+
+# edl/src/edl/lexer.edl       -> EDL
+
+# tests/typecheck.edl         -> EDL
+
+# examples/hello.edl          -> EDL
+
+#
+
+# Do not add broad linguist-vendored or linguist-generated rules for:
+
+#
+
+# /edl/**
+
+# /compiler/**
+
+# /tests/**
+
+# /examples/**
+
+# /tools/**
+
+#
+
+# because these directories may contain first-class EDL source.
+
+#
+
+# ============================================================================
+
+# End of file
+
+# ============================================================================
