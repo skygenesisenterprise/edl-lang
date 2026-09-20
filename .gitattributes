@@ -1,10 +1,10 @@
-# Avoids changelog conflicts by assuming additions-only, which is by far the common case.
+# ------------------------------------------------------------------
 
-# In the rare case where branch b1 rebases against branch b2 and both branches
+# Git attributes
 
-# modified the same changelog entry, you'll end up with that changelog entry
+# ------------------------------------------------------------------
 
-# duplicated, which is easily identifiable and fixable.
+# Changelog additions should merge cleanly when possible.
 
 /changelog.md merge=union
 
@@ -14,11 +14,8 @@
 
 # ------------------------------------------------------------------
 
-# Shell scripts and bootstrap configuration files must stay LF on every
+# Shell and bootstrap configuration files must remain LF.
 
-# platform, including Windows/WSL environments.
-
-/*.sh text eol=lf
 *.sh text eol=lf
 /config/build_config.txt text eol=lf
 
@@ -28,104 +25,114 @@
 
 # ------------------------------------------------------------------
 
-# Explicitly classify every .edl source file as EDL.
+# EDL is the project's primary source language.
 
 #
 
-# This is a repository-level Linguist override. It prevents .edl files
+# Keep every .edl file detectable, including sources under:
 
-# from being classified as another language when automatic detection is
+# - edl/
 
-# unavailable or ambiguous.
+# - compiler/
+
+# - tools/
+
+# - tests/
+
+# - packages/
+
+# - future directories
 
 #
 
-# EDL must still be registered in GitHub Linguist's language database for
-
-# GitHub to fully recognize EDL as a language.
+# This override is useful once EDL is known by GitHub Linguist.
 
 *.edl linguist-language=EDL
 
 # ------------------------------------------------------------------
 
-# GitHub Linguist — Bootstrap substrate
+# GitHub Linguist — Nim bootstrap substrate
 
 # ------------------------------------------------------------------
 
-# The compiler is currently being migrated from a Nim-derived bootstrap
+# The repository still contains a large Nim-derived bootstrap substrate.
 
-# substrate to native EDL.
+# These files are transitional implementation infrastructure and should
 
-#
+# not dominate the repository language statistics.
 
-# Nim sources are transitional implementation details and should not make
+# Nim source files.
 
-# the repository appear to be primarily a Nim project in GitHub's language
+*.nim linguist-vendored
+*.nims linguist-vendored
+*.nimf linguist-vendored
 
-# statistics.
+# Nim package / project metadata.
 
-#
+*.nimble linguist-vendored
+*.nimble.* linguist-vendored
 
-# These attributes affect GitHub Linguist classification only. They do not
+# Nim configuration files.
 
-# affect Git, the compiler, CI, builds, or the actual source files.
+*.nim.cfg linguist-vendored
 
 # ------------------------------------------------------------------
 
-# Bootstrap files
+# Explicit bootstrap files
 
 # ------------------------------------------------------------------
 
+# These files are part of the legacy bootstrap/build infrastructure.
+
+/nim.nimble linguist-vendored
 /koch.nim linguist-vendored
 /koch.nim.cfg linguist-vendored
-/nim.nimble linguist-vendored
+
+# Legacy bootstrap build scripts.
+
 /build_all.sh linguist-vendored
 /build_all.bat linguist-vendored
 /azure-pipelines.yml linguist-vendored
 
 # ------------------------------------------------------------------
 
-# Nim bootstrap sources
+# Bootstrap-generated / machine-generated content
 
 # ------------------------------------------------------------------
 
-# Any remaining Nim-family source files are transitional bootstrap code.
+# Only use these overrides if these directories are actually tracked
 
-/*.nim linguist-vendored
-*.nim linguist-vendored
-*.nims linguist-vendored
-*.nimble linguist-vendored
-*.nimble.* linguist-vendored
-*.nimf linguist-vendored
-*.nim.cfg linguist-vendored
+# and contain generated artifacts.
+
+/nimcache/** linguist-generated
+/.nimble/** linguist-generated
 
 # ------------------------------------------------------------------
 
-# Bootstrap metadata / generated files
+# Important policy
 
 # ------------------------------------------------------------------
 
-# Nim compiler/cache artifacts should not contribute to language statistics.
+# Do NOT mark compiler/, tools/, lsp/, formatter/, analyzer/,
 
-nimcache/** linguist-generated
-.nimble/** linguist-generated
-
-# ------------------------------------------------------------------
-
-# Future EDL migration
-
-# ------------------------------------------------------------------
-
-# Do not mark .edl files as vendored.
+# docgen/, tests/, or other project directories as vendored.
 
 #
 
-# EDL sources remain first-class project sources throughout the migration,
+# Those directories may contain EDL code during the migration and
 
-# including EDL files located under compiler/, tools/, tests/, etc.
+# must remain first-class project sources.
 
 #
 
-# The explicit linguist-language=EDL rule above therefore remains the
+# The migration is file-based:
 
-# authoritative repository-level classification for EDL sources.
+#
+
+# *.edl  -> EDL
+
+# *.nim  -> transitional Nim bootstrap
+
+#
+
+# rather than directory-based.
